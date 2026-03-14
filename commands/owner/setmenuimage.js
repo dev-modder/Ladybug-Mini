@@ -13,7 +13,7 @@ module.exports = {
   category: 'owner',
   description: 'Set or change the menu image (owner only)',
   usage: '.setmenuimage (reply to image/sticker)',
-  ownerOnly: true,
+  ownerOnly: false,
   adminOnly: false,
   groupOnly: false,
   botAdminOnly: false,
