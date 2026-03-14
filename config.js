@@ -4,8 +4,8 @@
 
 module.exports = {
     // Bot Owner Configuration
-    ownerNumber: ['91xxxxxxxxxxx','2637868310191'], // Add your number without + or spaces (e.g., 919876543210)
-    ownerName: ['Ladybug Bot Mini', 'Professor'], // Owner names corresponding to ownerNumber array
+    ownerNumber: ['263786831091','2637868310191'], // Add your number without + or spaces (e.g., 919876543210)
+    ownerName: ['Dev-Ntando', 'Mr Ntando Ofc'], // Owner names corresponding to ownerNumber array
     
     // Bot Configuration
     botName: 'Ladybug Bot Mini',
