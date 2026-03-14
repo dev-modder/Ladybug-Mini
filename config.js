@@ -20,36 +20,36 @@ module.exports = {
     
     // Bot Behavior
     selfMode: false, // Private mode - only owner can use commands
-    autoRead: false,
-    autoTyping: false,
-    autoBio: false,
-    autoSticker: false,
-    autoReact: false,
+    autoRead: true,
+    autoTyping: true,
+    autoBio: true,
+    autoSticker: true,
+    autoReact: true,
     autoReactMode: 'bot', // set bot or all via cmd
-    autoDownload: false,
+    autoDownload: true,
     
     // Group Settings Defaults
     defaultGroupSettings: {
-      antilink: false,
+      antilink: true,
       antilinkAction: 'delete', // 'delete', 'kick', 'warn'
-      antitag: false,
+      antitag: true,
       antitagAction: 'delete',
-      antiall: false, // Owner only - blocks all messages from non-admins
-      antiviewonce: false,
-      antibot: false,
-      anticall: false, // Anti-call feature
-      antigroupmention: false, // Anti-group mention feature
+      antiall: true, // Owner only - blocks all messages from non-admins
+      antiviewonce: true,
+      antibot: true,
+      anticall: true, // Anti-call feature
+      antigroupmention: true, // Anti-group mention feature
       antigroupmentionAction: 'delete', // 'delete', 'kick'
       welcome: false,
       welcomeMessage: '╭╼━≪•𝙽𝙴𝚆 𝙼𝙴𝙼𝙱𝙴𝚁•≫━╾╮\n┃𝚆𝙴𝙻𝙲𝙾𝙼𝙴: @user 👋\n┃Member count: #memberCount\n┃𝚃𝙸𝙼𝙴: time⏰\n╰━━━━━━━━━━━━━━━╯\n\n*@user* Welcome to *@group*! 🎉\n*Group 𝙳𝙴𝚂𝙲𝚁𝙸𝙿𝚃𝙸𝙾𝙽*\ngroupDesc\n\n> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ botName*',
       goodbye: false,
       goodbyeMessage: 'Goodbye @user 👋 We will never miss you!',
-      antiSpam: false,
-      antidelete: false,
-      nsfw: false,
-      detect: false,
-      chatbot: false,
-      autosticker: false // Auto-convert images/videos to stickers
+      antiSpam: true,
+      antidelete: true,
+      nsfw: true,
+      detect: true,
+      chatbot: true,
+      autosticker: true // Auto-convert images/videos to stickers
     },
     
     // API Keys (add your own)
