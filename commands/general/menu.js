@@ -1,5 +1,5 @@
-  /**
- * Menu Command - Galaxy Pulse Design (Design 07)
+/**
+ * Menu Command - Galaxy Pulse Design (Design 08)
  */
 
 const config = require('../../config');
@@ -34,7 +34,6 @@ module.exports = {
 
       // ─────────────────────────────────────────
       //  GALAXY PULSE — section builder
-      //  Splits commands into two columns side by side
       // ─────────────────────────────────────────
       const buildSection = (label, key) => {
         if (!categories[key] || categories[key].length === 0) return '';
@@ -44,13 +43,13 @@ module.exports = {
         // Pair commands into rows of 2
         const rows = [];
         for (let i = 0; i < cmds.length; i += 2) {
-          const left  = cmds[i].padEnd(16);
+          const left  = cmds[i].padEnd(20);
           const right = cmds[i + 1] ? cmds[i + 1] : '';
           rows.push(`*-*  ${left}${right}`);
         }
 
         let section = `\n*-*-*-*-*-*-*-*-*-*-*-*\n`;
-        section    += ` ◇  ${label}\n`;
+        section    += ` ◇  "${label}"\n`;
         section    += `*-*-*-*-*-*-*-*-*-*-*-*\n`;
         rows.forEach(row => {
           section += `${row}\n`;
