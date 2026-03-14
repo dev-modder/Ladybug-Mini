@@ -30,18 +30,17 @@ module.exports = {
       const ownerNames = Array.isArray(config.ownerName) ? config.ownerName : [config.ownerName];
       const displayOwner = ownerNames[0] || config.ownerName || 'Bot Owner';
       
-      let menuText = `╭▰▱▰▱彡「*${config.botName}* 」彡▰▱▰▱\n\n`;
-      menuText += `👋│ Hello @${extra.sender.split('@')[0]}!\n\n`;
-      menuText += `⚡│ Prefix: ${config.prefix}\n`;
-      menuText += `📦│ Total Commands: ${commands.size}\n`;
-      menuText += `👑│ Owner: ${displayOwner}\n\n`;
-      menuText += `👑│ Host: Ladybug-Hos✨t\n\n`;
+      let menuText = `╭━━『 *${config.botName}* 』━━╮\n\n`;
+      menuText += `👋 Hello @${extra.sender.split('@')[0]}!\n\n`;
+      menuText += `⚡ Prefix: ${config.prefix}\n`;
+      menuText += `📦 Total Commands: ${commands.size}\n`;
+      menuText += `👑 Owner: ${displayOwner}\n\n`;
       
       // General Commands
       if (categories.general) {
-        menuText += `╭▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
-        menuText += `│ 🧭 GENERAL COMMAND\n`;
-        menuText += `╰▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
+        menuText += `┏━━━━━━━━━━━━━━━━━\n`;
+        menuText += `┃ 🧭 GENERAL COMMAND\n`;
+        menuText += `┗━━━━━━━━━━━━━━━━━\n`;
         categories.general.forEach(cmd => {
           menuText += `│ ➜ ${config.prefix}${cmd.name}\n`;
         });
@@ -50,9 +49,9 @@ module.exports = {
       
       // AI Commands
       if (categories.ai) {
-        menuText += `╭▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
-        menuText += `│ 🤖 AI COMMAND\n`;
-        menuText += `╰▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
+        menuText += `┏━━━━━━━━━━━━━━━━━\n`;
+        menuText += `┃ 🤖 AI COMMAND\n`;
+        menuText += `┗━━━━━━━━━━━━━━━━━\n`;
         categories.ai.forEach(cmd => {
           menuText += `│ ➜ ${config.prefix}${cmd.name}\n`;
         });
@@ -61,9 +60,9 @@ module.exports = {
       
       // Group Commands
       if (categories.group) {
-        menuText += `╭▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
-        menuText += `│ 🔵 GROUP COMMAND\n`;
-        menuText += `╰▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
+        menuText += `┏━━━━━━━━━━━━━━━━━\n`;
+        menuText += `┃ 🔵 GROUP COMMAND\n`;
+        menuText += `┗━━━━━━━━━━━━━━━━━\n`;
         categories.group.forEach(cmd => {
           menuText += `│ ➜ ${config.prefix}${cmd.name}\n`;
         });
@@ -72,9 +71,9 @@ module.exports = {
       
       // Admin Commands
       if (categories.admin) {
-        menuText += `╭▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
-        menuText += `│ 🛡️ ADMIN COMMAND\n`;
-        menuText += `╰▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
+        menuText += `┏━━━━━━━━━━━━━━━━━\n`;
+        menuText += `┃ 🛡️ ADMIN COMMAND\n`;
+        menuText += `┗━━━━━━━━━━━━━━━━━\n`;
         categories.admin.forEach(cmd => {
           menuText += `│ ➜ ${config.prefix}${cmd.name}\n`;
         });
@@ -83,9 +82,9 @@ module.exports = {
       
       // Owner Commands
       if (categories.owner) {
-        menuText += `╭▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
-        menuText += `│ 👑 OWNER COMMAND\n`;
-        menuText += `╰▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
+        menuText += `┏━━━━━━━━━━━━━━━━━\n`;
+        menuText += `┃ 👑 OWNER COMMAND\n`;
+        menuText += `┗━━━━━━━━━━━━━━━━━\n`;
         categories.owner.forEach(cmd => {
           menuText += `│ ➜ ${config.prefix}${cmd.name}\n`;
         });
@@ -94,9 +93,9 @@ module.exports = {
       
       // Media Commands
       if (categories.media) {
-        menuText += `╭▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
-        menuText += `│ 🎞️ MEDIA COMMAND\n`;
-        menuText += `╰▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
+        menuText += `┏━━━━━━━━━━━━━━━━━\n`;
+        menuText += `┃ 🎞️ MEDIA COMMAND\n`;
+        menuText += `┗━━━━━━━━━━━━━━━━━\n`;
         categories.media.forEach(cmd => {
           menuText += `│ ➜ ${config.prefix}${cmd.name}\n`;
         });
@@ -105,9 +104,9 @@ module.exports = {
       
       // Fun Commands
       if (categories.fun) {
-        menuText += `╭▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
-        menuText += `│ 🎭 FUN COMMAND\n`;
-        menuText += `╰▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
+        menuText += `┏━━━━━━━━━━━━━━━━━\n`;
+        menuText += `┃ 🎭 FUN COMMAND\n`;
+        menuText += `┗━━━━━━━━━━━━━━━━━\n`;
         categories.fun.forEach(cmd => {
           menuText += `│ ➜ ${config.prefix}${cmd.name}\n`;
         });
@@ -116,9 +115,9 @@ module.exports = {
       
       // Utility Commands
       if (categories.utility) {
-        menuText += `╭▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
-        menuText += `│ 🔧 UTILITY COMMAND\n`;
-        menuText += `╰▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
+        menuText += `┏━━━━━━━━━━━━━━━━━\n`;
+        menuText += `┃ 🔧 UTILITY COMMAND\n`;
+        menuText += `┗━━━━━━━━━━━━━━━━━\n`;
         categories.utility.forEach(cmd => {
           menuText += `│ ➜ ${config.prefix}${cmd.name}\n`;
         });
@@ -127,9 +126,9 @@ module.exports = {
 
        // Anime Commands
        if (categories.anime) {
-        menuText += `╭▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
-        menuText += `│ 👾 ANIME COMMAND\n`;
-        menuText += `╰▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
+        menuText += `┏━━━━━━━━━━━━━━━━━\n`;
+        menuText += `┃ 👾 ANIME COMMAND\n`;
+        menuText += `┗━━━━━━━━━━━━━━━━━\n`;
         categories.anime.forEach(cmd => {
           menuText += `│ ➜ ${config.prefix}${cmd.name}\n`;
         });
@@ -138,19 +137,18 @@ module.exports = {
 
        // Textmaker Commands
        if (categories.utility) {
-        menuText += `╭▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰彡\n`;
-        menuText += `│ 🖋️ TEXTMAKER COMMAND\n`;
-        menuText += `╰▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n`;
+        menuText += `┏━━━━━━━━━━━━━━━━━\n`;
+        menuText += `┃ 🖋️ TEXTMAKER COMMAND\n`;
+        menuText += `┗━━━━━━━━━━━━━━━━━\n`;
         categories.textmaker.forEach(cmd => {
           menuText += `│ ➜ ${config.prefix}${cmd.name}\n`;
         });
         menuText += `\n`;
       }
       
-      menuText += `╰▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱彡\n\n`;
+      menuText += `╰━━━━━━━━━━━━━━━━━\n\n`;
       menuText += `💡 Type ${config.prefix}help <command> for more info\n`;
-      menuText += `🌟 Dev : Mr Ntando Ofc\n`;
-      menuText += `🟢 made with 💙 by Mr Ntando Ofc\n`;
+      menuText += `🌟 made in Zimbabwe\n`;
       
       // Send menu with image
       const fs = require('fs');
