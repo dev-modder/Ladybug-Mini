@@ -34,7 +34,7 @@ module.exports = {
       menuText += `👋 Hello @${extra.sender.split('@')[0]}!\n\n`;
       menuText += `⚡ Prefix: ${config.prefix}\n`;
       menuText += `📦 Total Commands: ${commands.size}\n`;
-      menuText += `👑 Owner: ${displayOwner}\n\n`;
+      menuText += `👑 Host: LADYBUGNODES\n\n`;
       
       // General Commands
       if (categories.general) {
