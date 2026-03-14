@@ -13,10 +13,10 @@ module.exports = {
   category: 'owner',
   description: 'Set or change the menu image (owner only)',
   usage: '.setmenuimage (reply to image/sticker)',
-  ownerOnly: false,
+  ownerOnly: true,
   adminOnly: false,
   groupOnly: false,
-  botAdminOnly: false,
+  botAdminOnly: true,
   
   async execute(sock, msg, args, extra) {
     try {
