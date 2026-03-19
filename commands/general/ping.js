@@ -12,6 +12,8 @@
 
 const config = require('../../config');
 const os     = require('os');
+const fs     = require('fs');
+const path   = require('path');
 
 // ── Helpers ─────────────────────────────────
 
@@ -103,10 +105,32 @@ module.exports = {
         `╚══════════════════════════════════════╝\n` +
         `\n🔥 _Powered by Mr Ntando Ofc_`;
 
+      // ── 2. Edit message with full result ────────
       await sock.sendMessage(extra.from, {
         text: result,
         edit: sent.key,
       });
+
+      // ── 3. Send image card after result ─────────
+      const imagePath = path.join(__dirname, '../../utils/bot_image.jpg');
+      if (fs.existsSync(imagePath)) {
+        await sock.sendMessage(
+          extra.from,
+          {
+            image:   fs.readFileSync(imagePath),
+            caption: `⚡ *${ms}ms* · ${speed.label}\n🌐 *LadybugNodes* · 🟢 Online`,
+            contextInfo: {
+              forwardingScore: 1,
+              isForwarded:     true,
+              forwardedNewsletterMessageInfo: {
+                newsletterJid:   config.newsletterJid || '120363161518@newsletter',
+                newsletterName:  config.botName,
+                serverMessageId: -1,
+              },
+            },
+          }
+        );
+      }
 
     } catch (error) {
       console.error('[Ping] Error:', error);

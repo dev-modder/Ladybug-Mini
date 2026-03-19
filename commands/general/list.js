@@ -11,6 +11,8 @@
 const config  = require('../../config');
 const { loadCommands } = require('../../utils/commandLoader');
 const { sendButtons }  = require('gifted-btns');
+const fs   = require('fs');
+const path = require('path');
 
 // ── Platform detection (same logic as menu.js) ──
 function detectPlatform(msg) {
@@ -91,22 +93,68 @@ module.exports = {
         }
       ];
 
+      const imagePath = path.join(__dirname, '../../utils/bot_image.jpg');
+      const hasImage  = fs.existsSync(imagePath);
+
       if (platform === 'ios') {
-        // iOS: send plain text only
-        await sock.sendMessage(
-          extra.from,
-          { text: menu, mentions: [extra.sender] },
-          { quoted: msg }
-        );
+        // iOS: image + caption if available, else plain text
+        if (hasImage) {
+          await sock.sendMessage(
+            extra.from,
+            {
+              image:    fs.readFileSync(imagePath),
+              caption:  menu,
+              mentions: [extra.sender],
+              contextInfo: {
+                forwardingScore: 1,
+                isForwarded:     true,
+                forwardedNewsletterMessageInfo: {
+                  newsletterJid:   config.newsletterJid || '120363161518@newsletter',
+                  newsletterName:  config.botName,
+                  serverMessageId: -1,
+                },
+              },
+            },
+            { quoted: msg }
+          );
+        } else {
+          await sock.sendMessage(
+            extra.from,
+            { text: menu, mentions: [extra.sender] },
+            { quoted: msg }
+          );
+        }
       } else {
-        // Android: send with interactive buttons (falls back to plain text)
+        // Android: image header first (if available), then buttons
+        if (hasImage) {
+          await sock.sendMessage(
+            extra.from,
+            {
+              image:    fs.readFileSync(imagePath),
+              caption:  `🐞 *Ladybug Bot Mini* — Commands List`,
+              mentions: [extra.sender],
+              contextInfo: {
+                forwardingScore: 1,
+                isForwarded:     true,
+                forwardedNewsletterMessageInfo: {
+                  newsletterJid:   config.newsletterJid || '120363161518@newsletter',
+                  newsletterName:  config.botName,
+                  serverMessageId: -1,
+                },
+              },
+            },
+            { quoted: msg }
+          );
+        }
+
+        // Interactive buttons (falls back to plain text on failure)
         try {
           await sendButtons(sock, extra.from, {
             title:   '',
             text:    menu,
             footer:  `> *Powered by ${config.botName}*`,
             buttons: BUTTONS,
-          }, { quoted: msg });
+          }, { quoted: hasImage ? undefined : msg });
         } catch (btnErr) {
           console.warn('[List] Buttons failed, falling back to text:', btnErr.message);
           await sock.sendMessage(
