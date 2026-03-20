@@ -1,9 +1,9 @@
 /**
- * Menu Command — CRIMSON EMPIRE Design
+ * Menu Command — NUSANTARA EMPIRE Design  V(5)
  * Ladybug Bot Mini | by Dev-Ntando
  *
  *  ✦ Auto-detects iOS vs Android and sends the right format
- *  ✦ Android  → gifted-btns interactive buttons + list sections
+ *  ✦ Android  → gifted-btns interactive category BUTTONS + list sections
  *  ✦ iOS      → clean formatted plain-text (buttons not supported)
  *  ✦ Loading message → deleted after menu posts
  *  ✦ Live uptime, RAM, date & time (CAT / Africa/Harare)
@@ -11,6 +11,8 @@
  *  ✦ Two-column command layout
  *  ✦ Newsletter forward tag
  *  ✦ Image + caption OR plain text fallback
+ *  ✦ Greeting in Indonesian language
+ *  ✦ Version: V(5)
  */
 
 'use strict';
@@ -23,38 +25,12 @@ const path    = require('path');
 
 // ══════════════════════════════════════════════
 //  PLATFORM DETECTION
-//  WhatsApp embeds device info in message.verifiedBizName
-//  or we can read the agent string from message context.
-//  Most reliable: check msg.message keys for interactiveMessage
-//  support. If the sender's device is iOS, Baileys reports
-//  it via the key.id prefix pattern or via userAgent.
-//  Safest approach: try interactive, catch & fallback to text.
 // ══════════════════════════════════════════════
-
-/**
- * Returns 'ios' | 'android' | 'unknown'
- * Reads the optional platform hint Baileys attaches to the
- * message context (available in newer Baileys versions).
- */
 function detectPlatform(msg) {
   try {
-    // Baileys >= 6.x attaches device info here
-    const agent =
-      msg?.message?.extendedTextMessage?.contextInfo?.externalAdReply?.mediaType ||
-      msg?.verifiedBizName ||
-      '';
-
-    // Key ID prefix: iOS uses a 16-char hex key, Android uses
-    // alphanumeric. Not 100% reliable — use the try/catch strategy.
     const keyId = msg?.key?.id || '';
-
-    // Check for explicit iOS indicators in key or context
     if (/^[A-F0-9]{16}$/.test(keyId)) return 'ios';
-
-    // If message has no interactiveResponseMessage support hint → iOS
     if (msg?.message?.interactiveResponseMessage) return 'android';
-
-    // Default: assume Android (interactive will be tried first)
     return 'android';
   } catch {
     return 'android';
@@ -71,15 +47,15 @@ function formatUptime(sec) {
   const m = Math.floor((sec % 3600) / 60);
   const s = Math.floor(sec % 60);
   const p = [];
-  if (d) p.push(`${d}d`);
-  if (h) p.push(`${h}h`);
+  if (d) p.push(`${d}h`);
+  if (h) p.push(`${h}j`);
   if (m) p.push(`${m}m`);
-  if (s || !p.length) p.push(`${s}s`);
+  if (s || !p.length) p.push(`${s}d`);
   return p.join(' ');
 }
 
 function getNow() {
-  return new Date().toLocaleString('en-ZA', {
+  return new Date().toLocaleString('id-ID', {
     timeZone: config.timezone || 'Africa/Harare',
     hour12:   false,
     weekday:  'long',
@@ -96,20 +72,34 @@ function getRam() {
   return `${mb.toFixed(1)} MB`;
 }
 
+/** Indonesian time-based greeting */
+function getGreeting() {
+  const hour = new Date().toLocaleString('id-ID', {
+    timeZone: config.timezone || 'Africa/Harare',
+    hour: '2-digit',
+    hour12: false,
+  });
+  const h = parseInt(hour, 10);
+  if (h >= 4  && h < 11) return 'Selamat Pagi';
+  if (h >= 11 && h < 15) return 'Selamat Siang';
+  if (h >= 15 && h < 18) return 'Selamat Sore';
+  return 'Selamat Malam';
+}
+
 // ══════════════════════════════════════════════
 //  CATEGORY META
 // ══════════════════════════════════════════════
 const CAT = {
-  general:   { icon: '❖', label: 'GENERAL'           },
-  ai:        { icon: '◈', label: 'AI & INTELLIGENCE'  },
-  group:     { icon: '◉', label: 'GROUP MANAGEMENT'   },
-  admin:     { icon: '◆', label: 'ADMIN TOOLS'        },
-  owner:     { icon: '♛', label: 'OWNER ONLY'         },
-  media:     { icon: '◎', label: 'MEDIA & DOWNLOAD'   },
-  fun:       { icon: '◇', label: 'FUN & GAMES'        },
-  utility:   { icon: '◑', label: 'UTILITY TOOLS'      },
-  anime:     { icon: '◐', label: 'ANIME'              },
-  textmaker: { icon: '▣', label: 'TEXT MAKER'         },
+  general:   { icon: '❖', label: 'UMUM'               },
+  ai:        { icon: '◈', label: 'AI & KECERDASAN'     },
+  group:     { icon: '◉', label: 'MANAJEMEN GRUP'      },
+  admin:     { icon: '◆', label: 'ALAT ADMIN'          },
+  owner:     { icon: '♛', label: 'KHUSUS OWNER'        },
+  media:     { icon: '◎', label: 'MEDIA & UNDUHAN'     },
+  fun:       { icon: '◇', label: 'FUN & PERMAINAN'     },
+  utility:   { icon: '◑', label: 'ALAT UTILITAS'       },
+  anime:     { icon: '◐', label: 'ANIME'               },
+  textmaker: { icon: '▣', label: 'PEMBUAT TEKS'        },
 };
 
 const ORDER = [
@@ -118,7 +108,7 @@ const ORDER = [
 ];
 
 // ══════════════════════════════════════════════
-//  TEXT SECTION BUILDER  (used by both platforms)
+//  TEXT SECTION BUILDER
 // ══════════════════════════════════════════════
 function buildSection(key, cmds) {
   if (!cmds?.length) return '';
@@ -134,7 +124,7 @@ function buildSection(key, cmds) {
   }
 
   return [
-    `  ╔══〘 ${icon} *${label}*  ·  ${cmds.length} cmds 〙`,
+    `  ╔══〘 ${icon} *${label}*  ·  ${cmds.length} cmd 〙`,
     ...rows,
     `  ╚${'═'.repeat(38)}`,
     ''
@@ -142,24 +132,24 @@ function buildSection(key, cmds) {
 }
 
 // ══════════════════════════════════════════════
-//  LOADING MESSAGE
+//  LOADING MESSAGE  (Indonesian)
 // ══════════════════════════════════════════════
 function buildLoadingMsg(sender) {
   return (
     `╔══════════════════════════════╗\n` +
-    `║   ⏳  *LOADING YOUR MENU*   ║\n` +
+    `║   ⏳  *MEMUAT MENU...*       ║\n` +
     `╠══════════════════════════════╣\n` +
     `║                              ║\n` +
-    `║  👤  Hey @${sender}!\n` +
+    `║  👤  Hei @${sender}!\n` +
     `║                              ║\n` +
-    `║  🔄  Fetching commands...\n` +
-    `║  📡  Connecting to host...\n` +
-    `║  🧠  Building sections...\n` +
-    `║  🎨  Rendering layout...\n` +
-    `║  ✅  Almost ready...\n` +
+    `║  🔄  Mengambil perintah...\n` +
+    `║  📡  Menghubungkan server...\n` +
+    `║  🧠  Menyusun kategori...\n` +
+    `║  🎨  Merender tampilan...\n` +
+    `║  ✅  Hampir selesai...\n` +
     `║                              ║\n` +
     `╚══════════════════════════════╝\n` +
-    `\n_⚡ Powered by LadybugNodes_`
+    `\n_⚡ Didukung oleh LadybugNodes_`
   );
 }
 
@@ -175,6 +165,7 @@ function buildMenuText(commands, categories, sender) {
   const now       = getNow();
   const ram       = getRam();
   const totalCmds = commands.size;
+  const greeting  = getGreeting();
 
   let txt = '';
 
@@ -183,27 +174,31 @@ function buildMenuText(commands, categories, sender) {
   txt += `╔══════════════════════════════════════════╗\n`;
   txt += `║                                          ║\n`;
   txt += `║    🐞  *L A D Y B U G   B O T*   🐞     ║\n`;
-  txt += `║          ✦ ✦  *M I N I*  ✦ ✦            ║\n`;
+  txt += `║          ✦ ✦  *M I N I  V(5)*  ✦ ✦      ║\n`;
   txt += `║                                          ║\n`;
   txt += `╠══════════════════════════════════════════╣\n`;
   txt += `║                                          ║\n`;
-  txt += `║  👤  *@${sender}*\n`;
+  txt += `║  🌙  *${greeting}, @${sender}!*\n`;
+  txt += `║  💬  Selamat datang di Ladybug Bot Mini\n`;
+  txt += `║  🤖  Bot siap melayani kamu 24/7!\n`;
+  txt += `║                                          ║\n`;
   txt += `║  🗓️  ${now}\n`;
   txt += `║                                          ║\n`;
-  txt += `╠═════〘 ⚙️  *SYSTEM STATUS* 〙═════════════╣\n`;
+  txt += `╠═════〘 ⚙️  *STATUS SISTEM* 〙══════════════╣\n`;
   txt += `║                                          ║\n`;
-  txt += `║  ⏱️   Uptime   »  *${uptime}*\n`;
-  txt += `║  💾   Memory   »  *${ram}*\n`;
-  txt += `║  📦   Commands »  *${totalCmds} total*\n`;
-  txt += `║  ⚡   Prefix   »  *${config.prefix}*\n`;
-  txt += `║  👑   Owner    »  *${ownerName}*\n`;
-  txt += `║  🌐   Host     »  *LadybugNodes*\n`;
-  txt += `║  🟢   Status   »  *Online & Active*\n`;
+  txt += `║  ⏱️   Uptime    »  *${uptime}*\n`;
+  txt += `║  💾   Memori    »  *${ram}*\n`;
+  txt += `║  📦   Perintah  »  *${totalCmds} total*\n`;
+  txt += `║  ⚡   Awalan    »  *${config.prefix}*\n`;
+  txt += `║  👑   Pemilik   »  *${ownerName}*\n`;
+  txt += `║  🌐   Host      »  *LadybugNodes*\n`;
+  txt += `║  🟢   Status    »  *Online & Aktif*\n`;
+  txt += `║  🔖   Versi     »  *V(5)*\n`;
   txt += `║                                          ║\n`;
   txt += `╚══════════════════════════════════════════╝\n`;
 
   // ── SECTION DIVIDER ─────────────────────────
-  txt += `\n━━━━━━〘 📋 *COMMAND MENU* 〙━━━━━━\n\n`;
+  txt += `\n━━━━━━〘 📋 *DAFTAR PERINTAH* 〙━━━━━━\n\n`;
 
   // ── COMMAND SECTIONS ────────────────────────
   for (const key of ORDER) {
@@ -216,14 +211,14 @@ function buildMenuText(commands, categories, sender) {
   // ── FOOTER ──────────────────────────────────
   txt += `╔══════════════════════════════════════════╗\n`;
   txt += `║                                          ║\n`;
-  txt += `║  💡  *${config.prefix}help [cmd]*  →  command info\n`;
-  txt += `║  📌  *${config.prefix}uptime*     →  system stats\n`;
-  txt += `║  📡  *${config.prefix}alive*      →  ping bot\n`;
+  txt += `║  💡  *${config.prefix}help [cmd]*  →  info perintah\n`;
+  txt += `║  📌  *${config.prefix}uptime*     →  statistik bot\n`;
+  txt += `║  📡  *${config.prefix}ping*       →  cek kecepatan\n`;
   txt += `║                                          ║\n`;
   txt += `╠══════════════════════════════════════════╣\n`;
-  txt += `║  🔥  *Powered by Mr Ntando Ofc*          ║\n`;
-  txt += `║  🇿🇼  *Made with ❤️  in Zimbabwe*          ║\n`;
-  txt += `║  🐞  *Ladybug Bot Mini — Stay Winning*   ║\n`;
+  txt += `║  🔥  *Dibuat oleh Mr Ntando Ofc*         ║\n`;
+  txt += `║  🇿🇼  *Dibuat dengan ❤️  di Zimbabwe*      ║\n`;
+  txt += `║  🐞  *Ladybug Bot Mini V(5) — Tetap Juara*║\n`;
   txt += `║                                          ║\n`;
   txt += `╚══════════════════════════════════════════╝`;
 
@@ -235,7 +230,6 @@ function buildMenuText(commands, categories, sender) {
 // ══════════════════════════════════════════════
 function buildListSections(categories) {
   const sections = [];
-
   const renderKey = [...ORDER, ...Object.keys(categories).filter(k => !ORDER.includes(k))];
 
   for (const key of renderKey) {
@@ -257,7 +251,7 @@ function buildListSections(categories) {
 }
 
 // ══════════════════════════════════════════════
-//  HEADER TEXT (short — for interactive messages)
+//  HEADER TEXT  (short — for interactive messages)
 // ══════════════════════════════════════════════
 function buildHeaderText(commands, sender) {
   const uptime    = formatUptime(Math.floor(process.uptime()));
@@ -266,52 +260,84 @@ function buildHeaderText(commands, sender) {
   const ownerName = Array.isArray(config.ownerName)
     ? config.ownerName[0]
     : config.ownerName;
+  const greeting  = getGreeting();
 
   return (
-    `🐞 *LADYBUG BOT MINI*\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `👤 *User:*    @${sender}\n` +
-    `⏱️  *Uptime:*  ${uptime}\n` +
-    `💾 *RAM:*    ${ram}\n` +
-    `📦 *Cmds:*   ${totalCmds} total\n` +
-    `⚡ *Prefix:* ${config.prefix}\n` +
-    `👑 *Owner:*  ${ownerName}\n` +
-    `🌐 *Host:*   LadybugNodes\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `_Tap a category below to browse commands_`
+    `🐞 *LADYBUG BOT MINI  V(5)*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `🌙 *${greeting}, @${sender}!*\n` +
+    `💬 Selamat datang di Ladybug Bot Mini.\n` +
+    `🤖 Bot siap melayani kamu 24/7!\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `⏱️  *Uptime:*    ${uptime}\n` +
+    `💾 *Memori:*    ${ram}\n` +
+    `📦 *Perintah:*  ${totalCmds} total\n` +
+    `⚡ *Awalan:*   ${config.prefix}\n` +
+    `👑 *Pemilik:*  ${ownerName}\n` +
+    `🌐 *Host:*     LadybugNodes\n` +
+    `🔖 *Versi:*    V(5)\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `_Ketuk kategori di bawah untuk melihat perintah_ 👇`
   );
 }
 
 // ══════════════════════════════════════════════
-//  SEND HELPERS
+//  INTERACTIVE BUTTONS — V(5) DESIGN
+//  Category shortcut buttons + social links
 // ══════════════════════════════════════════════
-
 const BUTTONS = [
+  // Quick-reply category buttons
+  {
+    name: 'quick_reply',
+    buttonParamsJson: JSON.stringify({
+      display_text: '❖ Umum',
+      id:           'cat_general',
+    }),
+  },
+  {
+    name: 'quick_reply',
+    buttonParamsJson: JSON.stringify({
+      display_text: '◎ Media',
+      id:           'cat_media',
+    }),
+  },
+  {
+    name: 'quick_reply',
+    buttonParamsJson: JSON.stringify({
+      display_text: '◈ AI',
+      id:           'cat_ai',
+    }),
+  },
+  {
+    name: 'quick_reply',
+    buttonParamsJson: JSON.stringify({
+      display_text: '◇ Fun',
+      id:           'cat_fun',
+    }),
+  },
+  // Social link button
   {
     name: 'cta_url',
     buttonParamsJson: JSON.stringify({
       display_text: '📺 YouTube',
-      url: (config.social && config.social.youtube) || 'http://youtube.com/@mr_ntando_ofc'
-    })
+      url: (config.social && config.social.youtube) || `https://wa.me/${(config.newsletterJid || '120363161518@newsletter').split('@')[0]}`,
+    }),
   },
   {
     name: 'cta_url',
     buttonParamsJson: JSON.stringify({
       display_text: '💻 GitHub',
-      url: (config.social && config.social.github) || 'https://github.com/mrntandodev'
-    })
+      url: (config.social && config.social.github) || `https://wa.me/${(config.newsletterJid || '120363161518@newsletter').split('@')[0]}`,
+    }),
   },
-  {
-    name: 'cta_url',
-    buttonParamsJson: JSON.stringify({
-      display_text: '📢 Channel',
-      url: `https://whatsapp.com/channel/${(config.newsletterJid || '120363161518@newsletter').split('@')[0]}`
-    })
-  }
 ];
 
+// ══════════════════════════════════════════════
+//  SEND HELPERS
+// ══════════════════════════════════════════════
+
 /**
- * Send interactive list + buttons  (Android)
+ * Send interactive list + category buttons  (Android)
  * Falls back to plain text if gifted-btns throws.
  */
 async function sendAndroidMenu(sock, msg, extra, commands, categories, sender) {
@@ -319,13 +345,14 @@ async function sendAndroidMenu(sock, msg, extra, commands, categories, sender) {
   const hasImage  = fs.existsSync(imagePath);
   const sections  = buildListSections(categories);
   const headerTxt = buildHeaderText(commands, sender);
+  const greeting  = getGreeting();
 
   try {
     // Send image header first (if available)
     if (hasImage) {
       await sock.sendMessage(extra.from, {
         image:    fs.readFileSync(imagePath),
-        caption:  `🐞 *Ladybug Bot Mini* — by Dev-Ntando\n_Loading interactive menu..._`,
+        caption:  `🐞 *Ladybug Bot Mini  V(5)* — by Dev-Ntando\n🌙 _${greeting}, selamat datang!_`,
         mentions: [extra.sender],
         contextInfo: {
           forwardingScore: 1,
@@ -341,25 +368,29 @@ async function sendAndroidMenu(sock, msg, extra, commands, categories, sender) {
 
     // Send interactive list (command browser)
     await sendList(sock, extra.from, {
-      title:       '🐞 Ladybug Bot Mini',
+      title:       '🐞 Ladybug Bot Mini  V(5)',
       text:        headerTxt,
-      footer:      `> 🔥 Powered by ${config.botName}`,
-      buttonText:  '📋 Browse Commands',
+      footer:      `> 🔥 Didukung oleh ${config.botName}`,
+      buttonText:  '📋 Lihat Perintah',
       sections,
       mentions:    [extra.sender],
     }, { quoted: hasImage ? undefined : msg });
 
-    // Send buttons row
+    // Send category shortcut buttons row
     await sendButtons(sock, extra.from, {
-      title:  '',
-      text:   `💡 *${config.prefix}help [cmd]*  →  command details\n📡 *${config.prefix}ping*  →  check bot speed`,
-      footer: `> *Ladybug Bot Mini* · LadybugNodes`,
+      title:   '',
+      text:
+        `⚡ *Pintasan Kategori*\n` +
+        `Ketuk tombol di bawah untuk langsung ke kategori:\n\n` +
+        `❖ *Umum*   ·   ◎ *Media*   ·   ◈ *AI*   ·   ◇ *Fun*\n\n` +
+        `💡 *${config.prefix}help [perintah]*  →  info perintah\n` +
+        `📡 *${config.prefix}ping*              →  cek kecepatan bot`,
+      footer:  `> *Ladybug Bot Mini V(5)* · LadybugNodes`,
       buttons: BUTTONS,
     }, { quoted: undefined });
 
   } catch (err) {
-    // Interactive failed (e.g. old Baileys, ban-risk env) → fall back
-    console.warn('[Menu] Interactive send failed, falling back to text:', err.message);
+    console.warn('[Menu V5] Pengiriman interaktif gagal, beralih ke teks:', err.message);
     await sendPlainMenu(sock, msg, extra, commands, categories, sender);
   }
 }
@@ -396,60 +427,61 @@ async function sendPlainMenu(sock, msg, extra, commands, categories, sender) {
 }
 
 // ══════════════════════════════════════════════
-//  MODULE
+//  EXECUTE
 // ══════════════════════════════════════════════
 module.exports = {
   name:        'menu',
-  aliases:     ['help', 'commands', 'cmds', 'start'],
-  category:    'general',
-  description: 'Show all available commands',
+  aliases:     ['help', 'start', 'cmds', 'commands'],
+  description: 'Tampilkan semua perintah bot',
   usage:       '.menu',
+  category:    'general',
 
   async execute(sock, msg, args, extra) {
     try {
       const sender   = extra.sender.split('@')[0];
       const platform = detectPlatform(msg);
+      const commands = loadCommands();
 
-      // ── 1. Send loading message ──────────────
-      const loadingKey = await sock.sendMessage(
-        extra.from,
-        {
-          text:     buildLoadingMsg(sender),
-          mentions: [extra.sender],
-        },
-        { quoted: msg }
-      );
-
-      // ── 2. Build command map ─────────────────
-      const commands   = loadCommands();
+      // ── Categorise commands ───────────────────
       const categories = {};
       commands.forEach((cmd, name) => {
-        if (cmd.name !== name) return; // skip aliases
-        const cat = (cmd.category || 'general').toLowerCase();
-        if (!categories[cat]) categories[cat] = [];
-        categories[cat].push(cmd);
+        if (cmd.name === name) {
+          const cat = (cmd.category || 'other').toLowerCase();
+          if (!categories[cat]) categories[cat] = [];
+          categories[cat].push(cmd);
+        }
       });
 
-      // Short delay so loading message is visible
-      await new Promise(r => setTimeout(r, 1800));
+      // ── Send loading message ──────────────────
+      let loadMsg;
+      try {
+        loadMsg = await sock.sendMessage(
+          extra.from,
+          { text: buildLoadingMsg(sender), mentions: [extra.sender] },
+          { quoted: msg }
+        );
+      } catch (_) { /* non-fatal */ }
 
-      // ── 3. Send platform-appropriate menu ────
+      // ── Small delay for UX ────────────────────
+      await new Promise(r => setTimeout(r, 1200));
+
+      // ── Delete loading message ────────────────
+      if (loadMsg?.key) {
+        try {
+          await sock.sendMessage(extra.from, { delete: loadMsg.key });
+        } catch (_) { /* non-fatal */ }
+      }
+
+      // ── Send menu ─────────────────────────────
       if (platform === 'ios') {
-        // iOS: plain text only — no interactive messages supported
         await sendPlainMenu(sock, msg, extra, commands, categories, sender);
       } else {
-        // Android: interactive list + buttons (falls back to text on error)
         await sendAndroidMenu(sock, msg, extra, commands, categories, sender);
       }
 
-      // ── 4. Delete loading message ────────────
-      try {
-        await sock.sendMessage(extra.from, { delete: loadingKey.key });
-      } catch (_) {}
-
-    } catch (error) {
-      console.error('[Menu] Error:', error);
-      await extra.reply(`❌ Failed to load menu: ${error.message}`);
+    } catch (err) {
+      console.error('[Menu V5] Error:', err);
+      await extra.reply('❌ Gagal memuat menu. Silakan coba lagi.');
     }
   },
 };

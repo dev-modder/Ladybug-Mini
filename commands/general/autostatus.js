@@ -1,103 +1,115 @@
 /**
- * AutoStatus Command - Automatically post WhatsApp Status updates
- * with powerful quotes from Mr Ntando.
+ * AutoStatus Command - Otomatis posting Status WhatsApp
+ * dengan kutipan bertenaga dari Mr Ntando.
+ * Ladybug Bot Mini | by Dev-Ntando
  *
- * Commands:
- *   .autostatus on           — start auto-posting status every interval
- *   .autostatus off          — stop auto-posting
- *   .autostatus now          — post one status immediately
- *   .autostatus interval 30  — set interval in minutes (default: 60)
- *   .autostatus list         — view all quotes
- *   .autostatus add <quote>  — add a custom Ntando quote
+ * Perintah:
+ *   .autostatus on              — mulai posting status otomatis setiap interval
+ *   .autostatus off             — hentikan posting otomatis
+ *   .autostatus now             — posting satu status sekarang
+ *   .autostatus interval 30     — atur interval dalam menit (default: 60)
+ *   .autostatus list            — lihat semua kutipan
+ *   .autostatus add <kutipan>   — tambah kutipan kustom Ntando
+ *
+ *  Version: V(5)
  */
 
 const config = require('../../config');
 
 // ─────────────────────────────────────────────
-// 🔥 Mr Ntando's Signature Quotes
+// 🔥 Kutipan Bertenaga Mr Ntando
 // ─────────────────────────────────────────────
 const NTANDO_QUOTES = [
-  "The grind doesn't care about your feelings — show up anyway. 💪\n— *Mr Ntando*",
-  "Average people talk about what they want. Winners build it in silence. 🔇\n— *Mr Ntando*",
-  "Your excuses are just someone else's success story waiting to happen. 🚀\n— *Mr Ntando*",
-  "Stop waiting for the perfect moment. Attack the moment you have. ⚔️\n— *Mr Ntando*",
-  "Comfort is the enemy of progress. Get uncomfortable. Get great. 🔥\n— *Mr Ntando*",
-  "People will doubt you. Let them. Doubt doesn't pay your bills — results do. 💰\n— *Mr Ntando*",
-  "You're not tired. You're just not connected to your purpose yet. 🎯\n— *Mr Ntando*",
-  "The version of you that wins is already inside you. Stop feeding the one that quits. 🧠\n— *Mr Ntando*",
-  "Work so hard that when opportunity arrives, it already knows your address. 🏠\n— *Mr Ntando*",
-  "They laughed at your dream. They'll clap at your success. Both are fuel. ⚡\n— *Mr Ntando*",
-  "Every setback is a setup. Every failure is a curriculum. Study it. 📚\n— *Mr Ntando*",
-  "Your network is your net worth — but only if you bring value to the table. 🤝\n— *Mr Ntando*",
-  "Small daily improvements lead to stunning long-term results. Trust the process. 📈\n— *Mr Ntando*",
-  "Discipline is doing what needs to be done, even when you don't feel like a champion. 👑\n— *Mr Ntando*",
-  "The world makes room for someone who knows where they are going. Know your direction. 🧭\n— *Mr Ntando*",
-  "You didn't come this far to only come this far. Keep moving. 🛤️\n— *Mr Ntando*",
-  "Your reputation is built in years and destroyed in seconds. Guard it. 🛡️\n— *Mr Ntando*",
-  "Poverty is a mindset before it is a circumstance. Change your thinking first. 💡\n— *Mr Ntando*",
-  "The people who change the world don't wait for permission. Neither should you. 🌍\n— *Mr Ntando*",
-  "A lion doesn't lose sleep over the opinion of sheep. Stay focused. 🦁\n— *Mr Ntando*",
+  "Perjuangan tidak peduli perasaanmu — tetap muncul dan bertarung. 💪\n— *Mr Ntando*",
+  "Orang biasa membicarakan apa yang mereka inginkan. Pemenang membangunnya dalam diam. 🔇\n— *Mr Ntando*",
+  "Alasanmu adalah kisah sukses orang lain yang sedang menunggu. 🚀\n— *Mr Ntando*",
+  "Berhenti menunggu momen sempurna. Serang momen yang kamu miliki sekarang. ⚔️\n— *Mr Ntando*",
+  "Kenyamanan adalah musuh kemajuan. Jadilah tidak nyaman. Jadilah hebat. 🔥\n— *Mr Ntando*",
+  "Orang akan meragukanmu. Biarkan mereka. Keraguan tidak membayar tagihan — hasil yang membayar. 💰\n— *Mr Ntando*",
+  "Kamu tidak lelah. Kamu hanya belum terhubung dengan tujuanmu. 🎯\n— *Mr Ntando*",
+  "Versi dirimu yang menang sudah ada di dalam dirimu. Berhenti memberi makan yang menyerah. 🧠\n— *Mr Ntando*",
+  "Bekerjalah sekeras itu sehingga ketika peluang datang, ia sudah tahu alamatmu. 🏠\n— *Mr Ntando*",
+  "Mereka menertawakan mimpimu. Mereka akan bertepuk tangan untuk kesuksesanmu. Keduanya adalah bahan bakar. ⚡\n— *Mr Ntando*",
+  "Setiap kemunduran adalah persiapan. Setiap kegagalan adalah kurikulum. Pelajari itu. 📚\n— *Mr Ntando*",
+  "Jaringanmu adalah kekayaanmu — tetapi hanya jika kamu membawa nilai ke meja. 🤝\n— *Mr Ntando*",
+  "Perbaikan kecil setiap hari menghasilkan hasil yang luar biasa dalam jangka panjang. Percaya prosesnya. 📈\n— *Mr Ntando*",
+  "Disiplin adalah melakukan apa yang perlu dilakukan, bahkan ketika kamu tidak merasa seperti juara. 👑\n— *Mr Ntando*",
+  "Dunia memberi ruang bagi orang yang tahu ke mana ia pergi. Ketahui arahmu. 🧭\n— *Mr Ntando*",
+  "Kamu tidak datang sejauh ini hanya untuk sampai sejauh ini. Terus bergerak. 🛤️\n— *Mr Ntando*",
+  "Reputasimu dibangun dalam bertahun-tahun dan dihancurkan dalam hitungan detik. Jaga itu. 🛡️\n— *Mr Ntando*",
+  "Kemiskinan adalah pola pikir sebelum menjadi keadaan. Ubah pikiranmu terlebih dahulu. 💡\n— *Mr Ntando*",
+  "Orang-orang yang mengubah dunia tidak menunggu izin. Kamu pun tidak perlu. 🌍\n— *Mr Ntando*",
+  "Singa tidak kehilangan tidur karena pendapat domba. Tetap fokus. 🦁\n— *Mr Ntando*",
 ];
 
 // ─────────────────────────────────────────────
-// State (in-memory per session)
+// State (dalam memori per sesi)
 // ─────────────────────────────────────────────
-let autoStatusInterval = null;   // setInterval handle
-let intervalMinutes    = 60;     // default: post every 60 minutes
-let quoteIndex         = 0;      // cycles through quotes in order
-let customQuotes       = [];     // user-added quotes
+let autoStatusInterval = null;   // handle setInterval
+let intervalMinutes    = 60;     // default: posting setiap 60 menit
+let quoteIndex         = 0;      // siklus melalui kutipan secara berurutan
+let customQuotes       = [];     // kutipan yang ditambahkan pengguna
 
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
 
-/** Get all quotes (built-in + custom), cycling in order */
+/** Dapatkan semua kutipan (bawaan + kustom), bersiklus secara berurutan */
 function getAllQuotes() {
   return [...NTANDO_QUOTES, ...customQuotes];
 }
 
-/** Get the next quote in rotation */
+/** Dapatkan kutipan berikutnya dalam rotasi */
 function getNextQuote() {
-  const all = getAllQuotes();
+  const all   = getAllQuotes();
   const quote = all[quoteIndex % all.length];
   quoteIndex++;
   return quote;
 }
 
-/** Get a random quote */
+/** Dapatkan kutipan acak */
 function getRandomQuote() {
   const all = getAllQuotes();
   return all[Math.floor(Math.random() * all.length)];
 }
 
-/** Build the full status text */
-function buildStatusText(quote) {
-  const now = new Date().toLocaleString('en-ZA', {
-    timeZone: 'Africa/Johannesburg',
-    hour12: false,
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
+/** Indonesian time-based greeting */
+function getGreeting() {
+  const hour = new Date().toLocaleString('id-ID', {
+    timeZone: config.timezone || 'Africa/Harare',
     hour: '2-digit',
-    minute: '2-digit',
+    hour12: false,
+  });
+  const h = parseInt(hour, 10);
+  if (h >= 4  && h < 11) return 'Selamat Pagi';
+  if (h >= 11 && h < 15) return 'Selamat Siang';
+  if (h >= 15 && h < 18) return 'Selamat Sore';
+  return 'Selamat Malam';
+}
+
+/** Bangun teks status lengkap */
+function buildStatusText(quote) {
+  const now = new Date().toLocaleString('id-ID', {
+    timeZone: 'Africa/Johannesburg',
+    hour12:   false,
+    weekday:  'short',
+    year:     'numeric',
+    month:    'short',
+    day:      'numeric',
+    hour:     '2-digit',
+    minute:   '2-digit',
   });
 
   return `${quote}\n\n🕐 _${now} | SAST_`;
 }
 
 /**
- * Post a WhatsApp status update.
- * 
- * WhatsApp statuses are sent to the special JID: "status@broadcast"
- * The message must be visible to your contacts via statusJidList.
+ * Posting pembaruan status WhatsApp.
  *
- * @param {object} sock - WhatsApp socket (Baileys)
- * @param {string} text - Status text content
+ * @param {object} sock - Socket WhatsApp (Baileys)
+ * @param {string} text - Konten teks status
  */
 async function postWhatsAppStatus(sock, text) {
-  // Attempt to fetch own contacts for the broadcast list
-  // Fall back to empty array if not available (WA will still post to all contacts)
   let statusJidList = [];
 
   try {
@@ -107,24 +119,17 @@ async function postWhatsAppStatus(sock, text) {
       );
     }
   } catch (_) {
-    // non-fatal — status still posts without explicit jid list on some Baileys builds
+    // non-fatal
   }
 
   await sock.sendMessage(
     'status@broadcast',
-    {
-      text,
-      // Optional: add background color for text statuses (Baileys v6+)
-      // backgroundArgb: 0xFF1A1A2E,
-      // font: 4,
-    },
-    {
-      statusJidList,
-    }
+    { text },
+    { statusJidList }
   );
 }
 
-/** Stop any running interval */
+/** Hentikan interval yang sedang berjalan */
 function stopAutoStatus() {
   if (autoStatusInterval) {
     clearInterval(autoStatusInterval);
@@ -135,49 +140,50 @@ function stopAutoStatus() {
 }
 
 // ─────────────────────────────────────────────
-// Command Module
+// Modul Perintah
 // ─────────────────────────────────────────────
 module.exports = {
-  name: 'autostatus',
-  aliases: ['statusbot', 'ntandostatus', 'quotestatus'],
-  category: 'general',
-  description: 'Auto-post powerful Mr Ntando quotes as WhatsApp Status',
-  usage: '.autostatus [on|off|now|interval <mins>|list|add <quote>]',
+  name:        'autostatus',
+  aliases:     ['statusbot', 'ntandostatus', 'quotestatus'],
+  category:    'general',
+  description: 'Posting otomatis kutipan Mr Ntando sebagai Status WhatsApp',
+  usage:       '.autostatus [on|off|now|interval <menit>|list|add <kutipan>]',
 
   async execute(sock, msg, args, extra) {
     try {
-      const sub = (args[0] || 'help').toLowerCase();
+      const sub      = (args[0] || 'help').toLowerCase();
+      const greeting = getGreeting();
 
       // ── .autostatus on ──────────────────────────────────
       if (sub === 'on') {
         if (autoStatusInterval) {
           return extra.reply(
-            `✅ *AutoStatus is already running!*\n⏱️ Posting every *${intervalMinutes} minute(s)*.\nUse *.autostatus off* to stop.`
+            `✅ *AutoStatus sudah berjalan!*\n⏱️ Posting setiap *${intervalMinutes} menit*.\nGunakan *.autostatus off* untuk menghentikan.`
           );
         }
 
-        // Post immediately on start
+        // Posting langsung saat dimulai
         const firstQuote = getNextQuote();
         await postWhatsAppStatus(sock, buildStatusText(firstQuote));
 
-        // Schedule recurring posts
+        // Jadwalkan posting berulang
         autoStatusInterval = setInterval(async () => {
           try {
             const quote = getNextQuote();
             await postWhatsAppStatus(sock, buildStatusText(quote));
-            console.log(`[AutoStatus] Posted status: ${quote.substring(0, 50)}...`);
+            console.log(`[AutoStatus] Status diposting: ${quote.substring(0, 50)}...`);
           } catch (err) {
-            console.error('[AutoStatus] Failed to post status:', err.message);
+            console.error('[AutoStatus] Gagal memposting status:', err.message);
           }
         }, intervalMinutes * 60 * 1000);
 
         return extra.reply(
-          `🟢 *AutoStatus ACTIVATED!*\n\n` +
-          `📡 Posting *Mr Ntando quotes* as your WhatsApp status\n` +
-          `⏱️ Interval: every *${intervalMinutes} minute(s)*\n` +
-          `📝 Total quotes: *${getAllQuotes().length}*\n\n` +
-          `_First status posted now!_\n` +
-          `Use *.autostatus off* to stop.`
+          `🟢 *AutoStatus DIAKTIFKAN!*\n\n` +
+          `📡 Memposting *kutipan Mr Ntando* sebagai status WhatsApp kamu\n` +
+          `⏱️ Interval: setiap *${intervalMinutes} menit*\n` +
+          `📝 Total kutipan: *${getAllQuotes().length}*\n\n` +
+          `_Status pertama sudah diposting sekarang!_\n` +
+          `Gunakan *.autostatus off* untuk menghentikan.`
         );
       }
 
@@ -185,9 +191,9 @@ module.exports = {
       if (sub === 'off') {
         const stopped = stopAutoStatus();
         if (stopped) {
-          return extra.reply('🔴 *AutoStatus DEACTIVATED.*\nNo more automatic status updates.');
+          return extra.reply('🔴 *AutoStatus DINONAKTIFKAN.*\nTidak ada lagi pembaruan status otomatis.');
         }
-        return extra.reply('ℹ️ AutoStatus was not running. Use *.autostatus on* to start it.');
+        return extra.reply('ℹ️ AutoStatus tidak sedang berjalan. Gunakan *.autostatus on* untuk memulainya.');
       }
 
       // ── .autostatus now ─────────────────────────────────
@@ -196,21 +202,20 @@ module.exports = {
         const text  = buildStatusText(quote);
         await postWhatsAppStatus(sock, text);
         return extra.reply(
-          `✅ *Status posted!*\n\n` +
-          `📝 *Quote used:*\n${quote}`
+          `✅ *Status berhasil diposting!*\n\n` +
+          `📝 *Kutipan yang digunakan:*\n${quote}`
         );
       }
 
-      // ── .autostatus interval <mins> ─────────────────────
+      // ── .autostatus interval <menit> ────────────────────
       if (sub === 'interval') {
         const mins = parseInt(args[1]);
         if (!mins || mins < 1) {
-          return extra.reply('❌ Please provide a valid interval in minutes.\nExample: *.autostatus interval 30*');
+          return extra.reply('❌ Berikan interval yang valid dalam menit.\nContoh: *.autostatus interval 30*');
         }
 
         intervalMinutes = mins;
 
-        // Restart the interval if currently running
         if (autoStatusInterval) {
           stopAutoStatus();
           autoStatusInterval = setInterval(async () => {
@@ -218,28 +223,30 @@ module.exports = {
               const quote = getNextQuote();
               await postWhatsAppStatus(sock, buildStatusText(quote));
             } catch (err) {
-              console.error('[AutoStatus] Failed to post status:', err.message);
+              console.error('[AutoStatus] Gagal memposting status:', err.message);
             }
           }, intervalMinutes * 60 * 1000);
         }
 
         return extra.reply(
-          `⏱️ *Interval updated to ${intervalMinutes} minute(s)*.\n` +
-          (autoStatusInterval ? '🟢 AutoStatus is running with new interval.' : 'ℹ️ AutoStatus is not running. Use *.autostatus on* to start.')
+          `⏱️ *Interval diperbarui menjadi ${intervalMinutes} menit*.\n` +
+          (autoStatusInterval
+            ? '🟢 AutoStatus berjalan dengan interval baru.'
+            : 'ℹ️ AutoStatus tidak sedang berjalan. Gunakan *.autostatus on* untuk memulainya.')
         );
       }
 
       // ── .autostatus list ────────────────────────────────
       if (sub === 'list') {
         const all = getAllQuotes();
-        let list  = `📋 *Mr Ntando Quotes (${all.length} total)*\n`;
+        let list  = `📋 *Kutipan Mr Ntando (${all.length} total)*\n`;
         list     += `━━━━━━━━━━━━━━━━━━━━\n\n`;
 
         all.forEach((q, i) => {
           list += `*${i + 1}.* ${q}\n\n`;
         });
 
-        // Split into chunks if too long (WhatsApp 4096 char limit)
+        // Bagi menjadi beberapa bagian jika terlalu panjang (batas 4096 karakter WhatsApp)
         if (list.length > 4000) {
           const chunks = [];
           const lines  = list.split('\n\n');
@@ -247,12 +254,12 @@ module.exports = {
 
           for (const line of lines) {
             if ((chunk + line).length > 3800) {
-              chunks.push(chunk);
+              chunks.push(chunk.trim());
               chunk = '';
             }
             chunk += line + '\n\n';
           }
-          if (chunk) chunks.push(chunk);
+          if (chunk.trim()) chunks.push(chunk.trim());
 
           for (const c of chunks) {
             await extra.reply(c);
@@ -260,47 +267,49 @@ module.exports = {
           return;
         }
 
-        return extra.reply(list);
+        return extra.reply(list.trim());
       }
 
-      // ── .autostatus add <quote> ─────────────────────────
+      // ── .autostatus add <kutipan> ───────────────────────
       if (sub === 'add') {
-        const quote = args.slice(1).join(' ').trim();
-        if (!quote) {
-          return extra.reply('❌ Please provide a quote to add.\nExample: *.autostatus add Your time is now!*');
+        const newQuote = args.slice(1).join(' ').trim();
+        if (!newQuote) {
+          return extra.reply('❌ Berikan teks kutipan.\nContoh: *.autostatus add Mimpi besar, kerja keras!*');
         }
 
-        const formatted = `${quote}\n— *Mr Ntando*`;
+        const formatted = `${newQuote}\n— *Mr Ntando*`;
         customQuotes.push(formatted);
 
         return extra.reply(
-          `✅ *Quote added!*\n\n"${formatted}"\n\n` +
-          `📊 Total quotes: *${getAllQuotes().length}*`
+          `✅ *Kutipan ditambahkan!*\n\n"${formatted}"\n\n` +
+          `📊 Total kutipan: *${getAllQuotes().length}*`
         );
       }
 
       // ── .autostatus help (default) ──────────────────────
       const isRunning = !!autoStatusInterval;
       return extra.reply(
-        `╔══════════════════════╗\n` +
-        `  📡 *AUTO STATUS HELP*\n` +
-        `╚══════════════════════╝\n\n` +
-        `*Status:* ${isRunning ? '🟢 Running' : '🔴 Stopped'}\n` +
-        `*Interval:* ${intervalMinutes} minute(s)\n` +
-        `*Quotes:* ${getAllQuotes().length} available\n\n` +
-        `━━━━━ *COMMANDS* ━━━━━\n\n` +
-        `▸ *.autostatus on* — Start auto-posting\n` +
-        `▸ *.autostatus off* — Stop auto-posting\n` +
-        `▸ *.autostatus now* — Post one status now\n` +
-        `▸ *.autostatus interval 30* — Set interval (mins)\n` +
-        `▸ *.autostatus list* — View all quotes\n` +
-        `▸ *.autostatus add <text>* — Add a custom quote\n\n` +
-        `_Powered by Mr Ntando's Wisdom 🔥_`
+        `╔══════════════════════════════╗\n` +
+        `  📡 *BANTUAN AUTO STATUS  V(5)*\n` +
+        `╚══════════════════════════════╝\n\n` +
+        `🌙 *${greeting}!*\n\n` +
+        `*Status:*    ${isRunning ? '🟢 Berjalan' : '🔴 Berhenti'}\n` +
+        `*Interval:*  ${intervalMinutes} menit\n` +
+        `*Kutipan:*   ${getAllQuotes().length} tersedia\n\n` +
+        `━━━━━ *PERINTAH* ━━━━━\n\n` +
+        `▸ *.autostatus on*              — Mulai posting otomatis\n` +
+        `▸ *.autostatus off*             — Hentikan posting otomatis\n` +
+        `▸ *.autostatus now*             — Posting satu status sekarang\n` +
+        `▸ *.autostatus interval 30*     — Atur interval (menit)\n` +
+        `▸ *.autostatus list*            — Lihat semua kutipan\n` +
+        `▸ *.autostatus add <teks>*      — Tambah kutipan kustom\n\n` +
+        `_Didukung oleh Kebijaksanaan Mr Ntando 🔥_\n` +
+        `_🔖 Versi V(5)_`
       );
 
     } catch (error) {
-      console.error('Error in autostatus command:', error);
-      await extra.reply('❌ Something went wrong with the AutoStatus command. Try again.');
+      console.error('[AutoStatus V5] Error:', error);
+      await extra.reply('❌ Terjadi kesalahan pada perintah AutoStatus. Coba lagi.');
     }
   }
 };
