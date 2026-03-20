@@ -145,7 +145,7 @@ function stopAutoStatus() {
 module.exports = {
   name:        'autostatus',
   aliases:     ['statusbot', 'ntandostatus', 'quotestatus'],
-  category:    'general',
+  category:    'statustools',
   description: 'Posting otomatis kutipan Mr Ntando sebagai Status WhatsApp',
   usage:       '.autostatus [on|off|now|interval <menit>|list|add <kutipan>]',
 

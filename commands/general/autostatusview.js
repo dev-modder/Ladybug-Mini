@@ -226,7 +226,7 @@ module.exports = [
   {
     name:        'autostatusview',
     aliases:     ['asview', 'statusview', 'viewstatus'],
-    category:    'general',
+    category:    'statustools',
     description: 'Otomatis melihat semua status kontak WhatsApp',
     usage:       '.autostatusview [on|off|now|interval <menit>|stats]',
 
@@ -393,7 +393,7 @@ module.exports = [
   {
     name:        'autostatuslike',
     aliases:     ['aslike', 'statuslike', 'likestatus', 'statusreact'],
-    category:    'general',
+    category:    'statustools',
     description: 'Otomatis like (react) semua status kontak WhatsApp',
     usage:       '.autostatuslike [on|off|emoji <emoji>|stats]',
 

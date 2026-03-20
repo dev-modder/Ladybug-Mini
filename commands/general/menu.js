@@ -90,21 +90,22 @@ function getGreeting() {
 //  CATEGORY META
 // ══════════════════════════════════════════════
 const CAT = {
-  general:   { icon: '❖', label: 'UMUM'               },
-  ai:        { icon: '◈', label: 'AI & KECERDASAN'     },
-  group:     { icon: '◉', label: 'MANAJEMEN GRUP'      },
-  admin:     { icon: '◆', label: 'ALAT ADMIN'          },
-  owner:     { icon: '♛', label: 'KHUSUS OWNER'        },
-  media:     { icon: '◎', label: 'MEDIA & UNDUHAN'     },
-  fun:       { icon: '◇', label: 'FUN & PERMAINAN'     },
-  utility:   { icon: '◑', label: 'ALAT UTILITAS'       },
-  anime:     { icon: '◐', label: 'ANIME'               },
-  textmaker: { icon: '▣', label: 'PEMBUAT TEKS'        },
+  general:     { icon: '❖', label: 'UMUM'                    },
+  ai:          { icon: '◈', label: 'AI & KECERDASAN'          },
+  group:       { icon: '◉', label: 'MANAJEMEN GRUP'           },
+  admin:       { icon: '◆', label: 'ALAT ADMIN'               },
+  owner:       { icon: '♛', label: 'KHUSUS OWNER'             },
+  media:       { icon: '◎', label: 'MEDIA & UNDUHAN'          },
+  fun:         { icon: '◇', label: 'FUN & PERMAINAN'          },
+  utility:     { icon: '◑', label: 'ALAT UTILITAS'            },
+  anime:       { icon: '◐', label: 'ANIME'                    },
+  textmaker:   { icon: '▣', label: 'PEMBUAT TEKS'             },
+  statustools: { icon: '👁', label: 'STATUS VIEW & LIKE'      },
 };
 
 const ORDER = [
   'general','ai','media','fun','utility',
-  'group','admin','owner','anime','textmaker'
+  'group','admin','owner','anime','textmaker','statustools'
 ];
 
 // ══════════════════════════════════════════════
@@ -211,9 +212,11 @@ function buildMenuText(commands, categories, sender) {
   // ── FOOTER ──────────────────────────────────
   txt += `╔══════════════════════════════════════════╗\n`;
   txt += `║                                          ║\n`;
-  txt += `║  💡  *${config.prefix}help [cmd]*  →  info perintah\n`;
-  txt += `║  📌  *${config.prefix}uptime*     →  statistik bot\n`;
-  txt += `║  📡  *${config.prefix}ping*       →  cek kecepatan\n`;
+  txt += `║  💡  *${config.prefix}help [cmd]*          →  info perintah\n`;
+  txt += `║  📌  *${config.prefix}uptime*              →  statistik bot\n`;
+  txt += `║  📡  *${config.prefix}ping*                →  cek kecepatan\n`;
+  txt += `║  👁   *${config.prefix}autostatusview on*  →  auto-lihat status\n`;
+  txt += `║  ❤️   *${config.prefix}autostatuslike on*  →  auto-like status\n`;
   txt += `║                                          ║\n`;
   txt += `╠══════════════════════════════════════════╣\n`;
   txt += `║  🔥  *Dibuat oleh Mr Ntando Ofc*         ║\n`;
@@ -315,7 +318,14 @@ const BUTTONS = [
       id:           'cat_fun',
     }),
   },
-  // Social link button
+  {
+    name: 'quick_reply',
+    buttonParamsJson: JSON.stringify({
+      display_text: '👁 Status Tools',
+      id:           'cat_statustools',
+    }),
+  },
+  // Social link buttons
   {
     name: 'cta_url',
     buttonParamsJson: JSON.stringify({
@@ -382,9 +392,12 @@ async function sendAndroidMenu(sock, msg, extra, commands, categories, sender) {
       text:
         `⚡ *Pintasan Kategori*\n` +
         `Ketuk tombol di bawah untuk langsung ke kategori:\n\n` +
-        `❖ *Umum*   ·   ◎ *Media*   ·   ◈ *AI*   ·   ◇ *Fun*\n\n` +
-        `💡 *${config.prefix}help [perintah]*  →  info perintah\n` +
-        `📡 *${config.prefix}ping*              →  cek kecepatan bot`,
+        `❖ *Umum*   ·   ◎ *Media*   ·   ◈ *AI*   ·   ◇ *Fun*\n` +
+        `👁 *Status View & Like*\n\n` +
+        `💡 *${config.prefix}help [perintah]*       →  info perintah\n` +
+        `📡 *${config.prefix}ping*                  →  cek kecepatan\n` +
+        `👁 *${config.prefix}autostatusview on*     →  auto-lihat status\n` +
+        `❤️  *${config.prefix}autostatuslike on*    →  auto-like status`,
       footer:  `> *Ladybug Bot Mini V(5)* · LadybugNodes`,
       buttons: BUTTONS,
     }, { quoted: undefined });
