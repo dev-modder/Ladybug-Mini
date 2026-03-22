@@ -8,8 +8,8 @@ const fs = require('fs');
 const path = require('path');
 const { getTempDir, deleteTempFile } = require('../../utils/tempManager');
 
-const BASE = 'https://api.princetechn.com/api/anime/oppai';
-const API_KEY = 'prince';
+const BASE = 'https://api.waifu.im/images';
+const TAG = 'oppai';
 
 module.exports = {
   name: 'oppai',
@@ -19,7 +19,7 @@ module.exports = {
   usage: 'oppai',
   execute: async (sock, msg, args, extra) => {
     try {
-      const url = `${BASE}?apikey=${API_KEY}`;
+      const url = `${BASE}?included_tags[]=${TAG}`;
       const response = await axios.get(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0',
@@ -28,11 +28,14 @@ module.exports = {
         timeout: 30000
       });
 
-      if (!response.data || !response.data.result) {
-        throw new Error('Invalid API response: missing image URL');
+      if (!response.data || !response.data.items || !response.data.items.length) {
+        throw new Error('Invalid API response: no images returned');
       }
 
-      const imageUrl = response.data.result;
+      // Pick a random image from the returned list
+      const items = response.data.items;
+      const item = items[Math.floor(Math.random() * items.length)];
+      const imageUrl = item.url;
 
       if (!imageUrl || typeof imageUrl !== 'string') {
         throw new Error('Invalid image URL in API response');
@@ -62,7 +65,7 @@ module.exports = {
       let extension = 'jpg';
       if (contentType.includes('png')) {
         extension = 'png';
-      } else if (contentType.includes('jpeg')) {
+      } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
         extension = 'jpg';
       } else if (imageUrl.match(/\.(png|jpg|jpeg)$/i)) {
         const match = imageUrl.match(/\.(png|jpg|jpeg)$/i);

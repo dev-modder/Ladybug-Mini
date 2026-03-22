@@ -1,6 +1,6 @@
 /**
  * Ladybug Bot Mini V(5)
- * Uniform Command - Get random uniform anime images
+ * Maid Command - Get random maid anime images
  */
 
 const axios = require('axios');
@@ -9,14 +9,14 @@ const path = require('path');
 const { getTempDir, deleteTempFile } = require('../../utils/tempManager');
 
 const BASE = 'https://api.waifu.im/images';
-const TAG = 'uniform';
+const TAG = 'maid';
 
 module.exports = {
-  name: 'uniform',
-  aliases: ['uniformsfw'],
+  name: 'maid',
+  aliases: ['maidnsfw'],
   category: 'anime',
-  desc: 'Get random uniform SFW anime images',
-  usage: 'uniform',
+  desc: 'Get random maid NSFW anime images',
+  usage: 'maid',
   execute: async (sock, msg, args, extra) => {
     try {
       const url = `${BASE}?included_tags[]=${TAG}`;
@@ -74,7 +74,7 @@ module.exports = {
 
       const tempDir = getTempDir();
       const timestamp = Date.now();
-      const tempImagePath = path.join(tempDir, `uniform_${timestamp}.${extension}`);
+      const tempImagePath = path.join(tempDir, `maid_${timestamp}.${extension}`);
 
       let finalBuffer = null;
 
@@ -99,7 +99,7 @@ module.exports = {
       }
 
     } catch (error) {
-      console.error('Error in uniform command:', error);
+      console.error('Error in maid command:', error);
 
       if (error.response?.status === 404) {
         await extra.reply('❌ Image not found. Please try again.');
@@ -108,7 +108,7 @@ module.exports = {
       } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
         await extra.reply('❌ Request timed out. Please try again.');
       } else {
-        await extra.reply(`❌ Failed to fetch uniform image: ${error.message}`);
+        await extra.reply(`❌ Failed to fetch maid image: ${error.message}`);
       }
     }
   }
