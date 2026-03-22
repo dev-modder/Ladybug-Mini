@@ -468,6 +468,27 @@ module.exports = {
         await sendAndroidMenu(sock, msg, extra, commands, categories, sender);
       }
 
+      // ── Send PDF manual ──────────────────────────────────────────────────
+      const pdfPath = path.join(__dirname, '../../utils/Ladybug_Bot_Mini_V5_Manual.pdf');
+      const pdfAlt  = path.join(__dirname, 'Ladybug_Bot_Mini_V5_Manual.pdf');
+      const finalPdfPath = fs.existsSync(pdfPath) ? pdfPath : (fs.existsSync(pdfAlt) ? pdfAlt : null);
+
+      if (finalPdfPath) {
+        try {
+          await sock.sendMessage(chatId, {
+            document:  fs.readFileSync(finalPdfPath),
+            mimetype:  'application/pdf',
+            fileName:  'Ladybug_Bot_Mini_V5_Manual.pdf',
+            caption:
+              '📄 *Ladybug Bot Mini V5 — Command Manual*\n' +
+              'Full command reference with all categories.\n\n' +
+              '> Made with ❤️ by Dev-Ntando',
+          }, { quoted: msg });
+        } catch (pdfErr) {
+          console.warn('[Menu V5] PDF send failed:', pdfErr.message);
+        }
+      }
+
     } catch (err) {
       console.error('[Menu V5] Error:', err);
       await sock.sendMessage(
