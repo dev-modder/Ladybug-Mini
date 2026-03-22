@@ -137,7 +137,7 @@ module.exports = {
         }, { quoted: msg });
       }
 
-      const caption = `*🐞 LADYBUG BOT MINI V2*\n\n🎬 ${video.title || 'YouTube Video'}\n⏱️ ${video.timestamp || 'N/A'}`;
+      const caption = `*🐞 LADYBUG BOT MINI V(5)*\n\n🎬 ${video.title || 'YouTube Video'}\n⏱️ ${video.timestamp || 'N/A'}`;
 
       // Send as buffer (preferred) or by URL
       if (videoBuffer) {
