@@ -1,44 +1,39 @@
 /**
- * Restart Command - Restart bot (Owner Only)
+ * Restart Command - Restart the bot process (owner only)
+ * Ladybug V5
+ *
+ * Sends a confirmation message then exits the process.
+ * Your process manager (PM2, nodemon, systemd) must restart it automatically.
  */
-
-const { exec } = require('child_process');
 
 module.exports = {
   name: 'restart',
-  aliases: ['reboot', 'reload'],
+  aliases: ['reboot', 'reloadbot'],
   category: 'owner',
-  description: 'Restart the bot (Owner Only)',
+  description: 'Restart the bot process',
   usage: '.restart',
   ownerOnly: true,
+  adminOnly: false,
+  groupOnly: false,
+  botAdminOnly: false,
 
   async execute(sock, msg, args, extra) {
     try {
-      await extra.reply('🔁 Restarting bot...');
+      await extra.reply(
+        `🔄 *Restarting Ladybug V5...*\n\n` +
+        `The bot will be back online in a few seconds.\n` +
+        `Make sure PM2 or your process manager is running!`
+      );
 
-      const run = (cmd) =>
-        new Promise((resolve, reject) => {
-          exec(cmd, (error, stdout, stderr) => {
-            if (error) reject(error);
-            else resolve(stdout || stderr);
-          });
-        });
-
-      try {
-        // If running under PM2, this will restart it
-        await run('pm2 restart all');
-        return;
-      } catch (e) {
-        console.log('PM2 not available, falling back to process.exit');
-      }
-
-      // For panels & nodemon – they usually restart on exit
+      // Give the message a moment to send before exiting
       setTimeout(() => {
+        console.log('[restart] Restart triggered by owner.');
         process.exit(0);
-      }, 500);
+      }, 1500);
+
     } catch (error) {
-      console.error('Restart error:', error);
-      await extra.reply(`❌ Error restarting bot: ${error.message}`);
+      console.error('[restart] Error:', error);
+      await extra.reply(`❌ Failed to restart: ${error.message}`);
     }
   },
 };
