@@ -1,12 +1,22 @@
 /**
  * YouTube Search Command
- * Ladybug Bot Mini V2
+ * Ladybug Bot V5
  *
  * Usage: .yts <search query>
- * Returns top 5 YouTube video results with title, duration, views, and URL.
+ * Returns top 5 results. Sends thumbnail of the #1 result.
  */
 
 const yts = require('yt-search');
+
+const BOT_TAG = `*🐞 LADYBUG BOT V5*`;
+
+function formatViews(views) {
+  if (!views || isNaN(views)) return 'N/A';
+  if (views >= 1_000_000_000) return `${(views / 1_000_000_000).toFixed(1)}B`;
+  if (views >= 1_000_000)     return `${(views / 1_000_000).toFixed(1)}M`;
+  if (views >= 1_000)         return `${(views / 1_000).toFixed(1)}K`;
+  return views.toString();
+}
 
 module.exports = {
   name: 'yts',
@@ -16,8 +26,9 @@ module.exports = {
   usage: '.yts <search query>',
 
   async execute(sock, msg, args, extra) {
+    const chatId = extra?.from || msg.key.remoteJid;
+
     try {
-      const chatId = extra?.from || msg.key.remoteJid;
       const query = args.join(' ').trim();
 
       if (!query) {
@@ -36,13 +47,14 @@ module.exports = {
         }, { quoted: msg });
       }
 
-      // Show top 5 results
       const results = search.videos.slice(0, 5);
+      const top     = results[0];
 
       const lines = results.map((v, i) => {
         const views = formatViews(v.views);
+        const mark  = i === 0 ? '🥇' : `${i + 1}.`;
         return (
-          `*${i + 1}. ${v.title}*\n` +
+          `${mark} *${v.title}*\n` +
           `   👤 ${v.author?.name || 'Unknown'}\n` +
           `   ⏱️ ${v.timestamp || 'N/A'}  •  👁️ ${views}\n` +
           `   🔗 ${v.url}`
@@ -50,30 +62,26 @@ module.exports = {
       });
 
       const resultText =
-        `🔍 *YouTube Search: "${query}"*\n` +
+        `🔍 *YouTube: "${query}"*\n` +
         `📋 Top ${results.length} results:\n\n` +
         lines.join('\n\n') +
-        `\n\n_🐞 Ladybug Bot Mini V2_\n` +
-        `_Use .song or .video + URL to download_`;
+        `\n\n_Use .song or .video + URL to download_\n${BOT_TAG}`;
 
-      await sock.sendMessage(chatId, { text: resultText }, { quoted: msg });
+      // Send thumbnail of top result + full list
+      if (top?.thumbnail) {
+        await sock.sendMessage(chatId, {
+          image: { url: top.thumbnail },
+          caption: resultText
+        }, { quoted: msg });
+      } else {
+        await sock.sendMessage(chatId, { text: resultText }, { quoted: msg });
+      }
 
     } catch (error) {
-      console.error('[yts] Command error:', error);
-      const chatId = extra?.from || msg.key.remoteJid;
+      console.error('[yts] Error:', error);
       await sock.sendMessage(chatId, {
-        text: '❌ An error occurred while searching YouTube. Please try again later.'
+        text: '❌ An error occurred while searching YouTube. Please try again.'
       }, { quoted: msg });
     }
   }
 };
-
-// ─── Helper ───────────────────────────────────────────────────────────────────
-
-function formatViews(views) {
-  if (!views || isNaN(views)) return 'N/A';
-  if (views >= 1_000_000_000) return `${(views / 1_000_000_000).toFixed(1)}B`;
-  if (views >= 1_000_000)     return `${(views / 1_000_000).toFixed(1)}M`;
-  if (views >= 1_000)         return `${(views / 1_000).toFixed(1)}K`;
-  return views.toString();
-}
