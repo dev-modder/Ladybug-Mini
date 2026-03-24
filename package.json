@@ -1,7 +1,7 @@
 {
-    "name": "whatsapp-md-bot",
-    "version": "1.0.0",
-    "description": "WhatsApp MD-Style Multi-Command Bot with Baileys",
+    "name": "ladybug-bot-v5",
+    "version": "5.0.0",
+    "description": "Ladybug Bot V5 — WhatsApp MD Multi-Command Bot with Baileys",
     "main": "index.js",
     "type": "commonjs",
     "scripts": {
@@ -11,12 +11,12 @@
     },
     "keywords": [
         "whatsapp bot",
-        "Knight Bot Mini",
+        "Ladybug Bot V5",
         "bot",
         "baileys",
         "md"
     ],
-    "author": "Your Name",
+    "author": "Dev-Ntando",
     "license": "MIT",
     "dependencies": {
         "@bochilteam/scraper": "^5.0.1",
