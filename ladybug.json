@@ -1,0 +1,11 @@
+{
+  "name": "My Ladybug Bot",
+  "version": "1.0.0",
+  "start": "node index.js",
+  "description": "My custom WhatsApp bot",
+  "env": {
+    "PREFIX": ".",
+    "BOT_NAME": "Ladybug",
+    "SESSION_ID": ""
+  }
+}
