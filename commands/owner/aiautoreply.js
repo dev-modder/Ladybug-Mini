@@ -168,11 +168,33 @@ async function handleIncomingDM(sock, msg) {
   const cfg = readConfig();
   if (!cfg.aiAutoReply) return;
 
-  const chatId    = msg.key.remoteJid;
-  if (chatId.endsWith('@g.us')) return;
+  const chatId  = msg.key.remoteJid;
+  const isGroup = chatId.endsWith('@g.us');
+
+  // Block groups unless owner has enabled group mode
+  if (isGroup && !cfg.aiAutoReplyGroups) return;
 
   const senderJid  = msg.key.participant || chatId;
   const senderName = msg.pushName || senderJid.split('@')[0] || 'User';
+
+  // ── Group trigger logic ────────────────────────────────────────────────────
+  // In groups, only reply when the bot is mentioned (@tagged) or quoted/replied to.
+  // This prevents the bot from responding to every single group message.
+  if (isGroup) {
+    const botJid = sock.user?.id?.replace(/:\d+/, '') + '@s.whatsapp.net';
+    const rawGroupText = msg.message?.conversation
+      || msg.message?.extendedTextMessage?.text
+      || msg.message?.imageMessage?.caption || '';
+
+    const isMentioned = (msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [])
+      .some(j => j === botJid || j?.split('@')[0] === botJid?.split('@')[0]);
+    const isQuoted = msg.message?.extendedTextMessage?.contextInfo?.participant === botJid
+      || msg.message?.extendedTextMessage?.contextInfo?.participant?.split('@')[0] === botJid?.split('@')[0];
+    const isBotReplied = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage != null
+      && msg.message?.extendedTextMessage?.contextInfo?.participant === botJid;
+
+    if (!isMentioned && !isQuoted && !isBotReplied) return;
+  }
   const isSchool   = cfg.aiAutoReplySchool === true;
   const memoryOn   = cfg.aiAutoReplyMemory !== false;
 
@@ -306,6 +328,7 @@ module.exports = {
         return extra.reply(
           '🤖 *AI Auto-Reply — Status*\n\n' +
           '• State:          *' + (cfg.aiAutoReply ? '🟢 ON' : '🔴 OFF') + '*\n' +
+          '• Groups:         *' + (cfg.aiAutoReplyGroups ? '👥 ON (mention/quote to trigger)' : '❌ DMs only') + '*\n' +
           '• School Mode:    *' + (cfg.aiAutoReplySchool ? '🎓 ON' : '❌ OFF') + '*\n' +
           '• Curriculum:     *' + (cfg.aiAutoReplyCurriculum || 'ZIMSEC (default)') + '*\n' +
           '• Default Level:  *' + (cfg.aiAutoReplyLevel || 'Not set') + '*\n' +
@@ -314,6 +337,7 @@ module.exports = {
           '• Custom Prompt:  *' + (cfg.aiAutoReplyPrompt ? '✏️ Set' : '📄 Default') + '*\n\n' +
           '📋 *Commands:*\n' +
           '  .aar on / off\n' +
+          '  .aar groups on / off\n' +
           '  .aar school on / off\n' +
           '  .aar setlevel <level>\n' +
           '  .aar setcurriculum <name>\n' +
@@ -327,12 +351,33 @@ module.exports = {
 
       if (sub === 'on' || sub === 'enable') {
         writeConfig('aiAutoReply', true);
-        return extra.reply('🟢 *AI Auto-Reply Enabled!*\n\nReplying to all DMs with AI.\n💡 Try school mode: *.aar school on*\n\n> _Made with ❤️ by Dev-Ntando 🇿🇼_');
+        return extra.reply('🟢 *AI Auto-Reply Enabled!*\n\nReplying to all DMs with AI.\n💡 Enable groups too: *.aar groups on*\n💡 Try school mode: *.aar school on*\n\n> _Made with ❤️ by Dev-Ntando 🇿🇼_');
       }
 
       if (sub === 'off' || sub === 'disable') {
         writeConfig('aiAutoReply', false);
         return extra.reply('🔴 *AI Auto-Reply Disabled.*\n\n> _Made with ❤️ by Dev-Ntando 🇿🇼_');
+      }
+
+      // groups on/off
+      if (sub === 'groups' || sub === 'group') {
+        if (sub2 === 'on' || sub2 === 'enable') {
+          writeConfig('aiAutoReplyGroups', true);
+          return extra.reply(
+            '👥 *Group Mode ON!*\n\n' +
+            'AI auto-reply is now active in *groups* too.\n\n' +
+            '⚠️ *Important:* In groups, the bot only replies when:\n' +
+            '  • Someone *@mentions* the bot\n' +
+            '  • Someone *quotes/replies* to the bot\'s message\n\n' +
+            'This prevents the bot from spamming every group message.\n\n' +
+            '> _Made with ❤️ by Dev-Ntando 🇿🇼_'
+          );
+        }
+        if (sub2 === 'off' || sub2 === 'disable') {
+          writeConfig('aiAutoReplyGroups', false);
+          return extra.reply('🔴 *Group Mode OFF.*\nAI auto-reply is now DMs only.\n\n> _Made with ❤️ by Dev-Ntando 🇿🇼_');
+        }
+        return extra.reply('❓ Usage: *.aar groups on* or *.aar groups off*');
       }
 
       if (sub === 'school') {
@@ -404,7 +449,7 @@ module.exports = {
 
       return extra.reply(
         '❓ Unknown: *' + sub + '*\n\n' +
-        'Options: on, off, status, school on/off, setlevel, setcurriculum,\n         setprompt, clearprompt, memory on/off, clearall'
+        'Options: on, off, status, groups on/off, school on/off,\n         setlevel, setcurriculum, setprompt, clearprompt,\n         memory on/off, clearall'
       );
     } catch (e) {
       console.error('[aiautoreply]', e);
