@@ -41,8 +41,15 @@ module.exports = {
           `  .aigenmusic hype afrobeats party\n` +
           `  .aigenmusic rainy night lo-fi sad\n` +
           `  .aigenmusic love amapiano\n\n` +
-          `I'll generate: *Title, Concept, Genre, Lyrics (Verse + Hook)*`
+          `I'll generate: *Title, Concept, Genre, Lyrics (Verse + Hook)*\n\n` +
+          `💡 *Tip:* Use *.aigenmusicaudio <topic>* to also get a real matching audio track!`
         );
+      }
+
+      // ── audio sub-command: delegate to aigenmusicaudio ─────────────────
+      if (args[0]?.toLowerCase() === 'audio') {
+        const audioCmd = require('./aigenmusicaudio');
+        return audioCmd.execute(sock, msg, args.slice(1), extra);
       }
 
       const topic = args.join(' ').trim();

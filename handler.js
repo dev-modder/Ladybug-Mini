@@ -18,6 +18,13 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 
+// ── AutoChat AI (per-chat toggle) ─────────────────────────────────────────────
+const autochatCmd = require('./commands/ai/autochat');
+
+// ── AI Auto-Reply (global DM AI reply, owner-controlled) ──────────────────────
+const APIs = require('./utils/api');
+const AI_AUTOREPLY_SYSTEM = `You are Ladybug, a friendly, witty, and helpful WhatsApp assistant created by Ladybug Bot Mini V5. You chat like a real human — casual, warm, and conversational. Keep replies short and natural unless asked for detail. Use emojis occasionally but don't overdo it. Never say you are an AI unless directly asked. Never use bullet lists unless the user explicitly asks for a list. Respond in the same language the user speaks.`;
+
 // Group metadata cache to prevent rate limiting
 const groupMetadataCache = new Map();
 const CACHE_TTL = 60000; // 1 minute cache
@@ -704,6 +711,52 @@ const handleMessage = async (sock, msg) => {
       }
     }
     
+    // ── AutoChat AI: per-chat AI auto-reply (anyone can toggle per chat) ──────
+    if (!body.startsWith(config.prefix)) {
+      try {
+        const handled = await autochatCmd.handleIncoming(sock, msg, {
+          from,
+          sender,
+          isGroup,
+          groupMetadata,
+          isOwner: isOwner(sender),
+          reply: (text) => sock.sendMessage(from, { text }, { quoted: msg }),
+          react: (emoji) => sock.sendMessage(from, { react: { text: emoji, key: msg.key } }),
+        });
+        if (handled) return;
+      } catch (acErr) {
+        console.error('[AutoChat] Error:', acErr.message);
+      }
+    }
+
+    // ── AI Auto-Reply: global DM auto-reply (owner-controlled in config) ──────
+    if (!body.startsWith(config.prefix) && !isGroup) {
+      delete require.cache[require.resolve('./config')];
+      const freshCfg = require('./config');
+      if (freshCfg.aiAutoReply === true && !msg.key.fromMe) {
+        try {
+          const customPrompt = freshCfg.aiAutoReplyPrompt || AI_AUTOREPLY_SYSTEM;
+          const prompt = `${customPrompt}\n\nUser: ${body.trim()}\nLadybug:`;
+          await sock.sendPresenceUpdate('composing', from);
+          const aiRes  = await APIs.chatAI(prompt);
+          const answer = (
+            aiRes?.response ||
+            aiRes?.msg ||
+            aiRes?.data?.msg ||
+            (typeof aiRes === 'string' ? aiRes : null) ||
+            '...'
+          ).trim();
+          await sock.sendPresenceUpdate('paused', from);
+          if (answer && answer !== '...') {
+            await sock.sendMessage(from, { text: answer }, { quoted: msg });
+          }
+        } catch (aarErr) {
+          console.error('[AI AutoReply] Error:', aarErr.message);
+        }
+        return;
+      }
+    }
+
     // Check if message starts with prefix
     if (!body.startsWith(config.prefix)) return;
     
