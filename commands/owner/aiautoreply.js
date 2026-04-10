@@ -163,6 +163,358 @@ function buildGeneralPrompt(cfg, history, userMessage, name) {
   return sys + '\n' + hist + '\nUser: ' + userMessage + '\nLadybug:';
 }
 
+function buildGeneralPrompt(cfg, history, userMessage, name) {
+  const sys = cfg.aiAutoReplyPrompt ||
+    'You are Ladybug, a friendly, witty WhatsApp assistant created by ' +
+    'Ntandoyenkosi Chisaya (Dev-Ntando) from Zimbabwe. ' +
+    'Chat casually, use occasional emojis, respond in the same language as the user, keep replies concise.';
+  const hist = trimHistory(history, 15)
+    .map(h => (h.role === 'user' ? (name || 'User') : 'Ladybug') + ': ' + h.content)
+    .join('\n');
+  return sys + '\n' + hist + '\nUser: ' + userMessage + '\nLadybug:';
+}
+
+// ─── Intent detector ──────────────────────────────────────────────────────────
+// Returns a string intent key if the message matches a known action, else null.
+function detectIntent(text) {
+  const t = text.toLowerCase();
+
+  // Image generation
+  if (/\b(generate|create|make|draw|design|produce|give me|show me|send me)\s+(me\s+)?(a|an|some|the)?\s*(image|picture|photo|pic|art|artwork|illustration|painting|drawing|wallpaper|poster|logo)\b/i.test(text)) return 'IMAGE_GEN';
+  if (/\b(image|picture|photo|pic|art|painting|drawing)\s+of\b/i.test(text)) return 'IMAGE_GEN';
+  if (/\b(imagine|visualize|render|sketch)\b.{0,60}\b(image|picture|scene|art|of)\b/i.test(text)) return 'IMAGE_GEN';
+
+  // Remove background
+  if (/\b(remove|cut out|delete|strip)\s+(the\s+)?(background|bg)\b/i.test(text)) return 'REMOVEBG';
+
+  // Song / music download
+  if (/\b(play|download|send|get)\s+(me\s+)?(the\s+|a\s+)?(song|music|audio|track|mp3)\b/i.test(text)) return 'SONG';
+  if (/\b(song|music)\s+(called|named|by|from|titled)\b/i.test(text)) return 'SONG';
+
+  // YouTube search
+  if (/\b(search|find|look up|youtube|yt)\b.{0,40}\b(video|song|music|youtube|yt)\b/i.test(text)) return 'YOUTUBE';
+  if (/\byoutube\b.{0,60}\b(search|find|look)\b/i.test(text)) return 'YOUTUBE';
+
+  // Translate
+  if (/\b(translate|translation)\b/i.test(text)) return 'TRANSLATE';
+  if (/\btranslate\s+(this|it|the|to|into)\b/i.test(text)) return 'TRANSLATE';
+
+  // Summarize
+  if (/\b(summarize|summary|tldr|tl;dr|shorten|brief|sum up)\b/i.test(text)) return 'SUMMARIZE';
+
+  // Text to speech / voice
+  if (/\b(say|speak|read|voice|tts|text.?to.?speech)\b.{0,40}\b(this|it|aloud|out loud|for me|in voice)\b/i.test(text)) return 'TTS';
+  if (/\bsend\s+(a\s+)?(voice|audio)\s+(note|message|saying|of)\b/i.test(text)) return 'TTS';
+
+  // Story
+  if (/\b(write|tell|create|generate|make)\s+(me\s+)?(a|an|short)?\s*(story|tale|fiction|short story|bedtime story)\b/i.test(text)) return 'STORY';
+
+  // Poem
+  if (/\b(write|create|make|generate)\s+(me\s+)?(a|an)?\s*(poem|poetry|rhyme|verse|haiku|sonnet)\b/i.test(text)) return 'POEM';
+
+  // Song lyrics generation
+  if (/\b(write|create|make|generate)\s+(me\s+)?(a|an|some)?\s*(song|lyrics|chorus|verse|hook)\b/i.test(text)) return 'LYRICS_GEN';
+  if (/\b(song lyrics?|write lyrics?)\b/i.test(text)) return 'LYRICS_GEN';
+
+  // AI sings (voice performance)
+  if (/\b(sing|perform|sing me|sing a song|ai sing)\b/i.test(text)) return 'SING';
+
+  // Advice
+  if (/\b(advice|advise|help me with|what should i do|how do i deal with|counsel)\b/i.test(text)) return 'ADVICE';
+
+  // Roast
+  if (/\b(roast me|roast (my|this)|make fun of me|clown me|burn me)\b/i.test(text)) return 'ROAST';
+
+  // Joke
+  if (/\b(tell me a joke|give me a joke|funny joke|make me laugh|joke)\b/i.test(text)) return 'JOKE';
+
+  // Flirt / pickup line
+  if (/\b(flirt|pickup line|pick.?up line|rizz me|chat me up)\b/i.test(text)) return 'FLIRT';
+
+  // Debate
+  if (/\b(debate|argue|both sides|pros and cons|for and against)\b/i.test(text)) return 'DEBATE';
+
+  // Compliment
+  if (/\b(compliment me|compliment (my|this)|hype me|say something nice)\b/i.test(text)) return 'COMPLIMENT';
+
+  // Define / dictionary
+  if (/\b(define|definition of|what does .{1,40} mean|meaning of|dictionary)\b/i.test(text)) return 'DEFINE';
+
+  // Wikipedia / search info
+  if (/\b(wikipedia|wiki|who is|what is|tell me about|explain)\s+.{2,}/i.test(text)) return 'WIKI';
+
+  // Weather
+  if (/\b(weather|temperature|forecast|climate)\b.{0,40}\b(in|at|for|today|tomorrow|now)\b/i.test(text)) return 'WEATHER';
+  if (/\bweather\s+in\b/i.test(text)) return 'WEATHER';
+
+  // Sticker from image
+  if (/\b(make|create|convert|turn).{0,20}(sticker|stiker)\b/i.test(text)) return 'STICKER';
+
+  // Shazam / identify song from audio
+  if (/\b(what song is this|identify (this )?song|shazam|name this song|song name)\b/i.test(text)) return 'SHAZAM';
+
+  return null;
+}
+
+// ─── Intent handlers ──────────────────────────────────────────────────────────
+async function handleIntent(intent, rawText, sock, msg, chatId, senderName) {
+  const yts = (() => { try { return require('yt-search'); } catch (_) { return null; } })();
+
+  // Extract a clean "subject" from the message for use in API queries
+  const cleanQuery = rawText
+    .replace(/\b(please|can you|could you|i want|i need|i would like|give me|show me|send me|tell me|write me)\b/gi, '')
+    .replace(/\b(a|an|some|the|me|for me)\b/gi, '')
+    .trim();
+
+  switch (intent) {
+
+    // ── Song download ──────────────────────────────────────────────────────────
+    case 'SONG': {
+      const songQuery = cleanQuery
+        .replace(/\b(play|download|song|music|audio|track|mp3|called|named|by|from|titled)\b/gi, '')
+        .trim() || rawText;
+      await sock.sendMessage(chatId, { text: '🎵 Searching for *' + songQuery + '*...' }, { quoted: msg });
+      try {
+        if (!yts) throw new Error('yt-search not available');
+        const results = await yts(songQuery);
+        const video = results?.videos?.find(v => v.seconds > 30 && v.seconds < 600);
+        if (!video) throw new Error('No results found');
+
+        await sock.sendMessage(chatId, { text: '📥 Found *' + video.title + '* (' + video.timestamp + '). Downloading...' }, { quoted: msg });
+
+        const dlApis = [
+          () => axios.get('https://api.siputzx.my.id/api/d/ytmp3', { params: { url: video.url }, timeout: 30000 })
+            .then(r => r?.data?.data?.url || r?.data?.url),
+          () => axios.get('https://api.agatz.xyz/api/ytmp3', { params: { url: video.url }, timeout: 25000 })
+            .then(r => r?.data?.data || r?.data?.url),
+        ];
+
+        let audioUrl = null;
+        for (const fn of dlApis) {
+          try { audioUrl = await fn(); if (audioUrl) break; } catch (_) {}
+        }
+
+        if (!audioUrl) throw new Error('Download failed');
+
+        const audioRes = await axios.get(audioUrl, { responseType: 'arraybuffer', timeout: 60000 });
+        const tmpFile  = require('path').join(__dirname, '../../temp', 'aar_song_' + Date.now() + '.mp3');
+        require('fs').writeFileSync(tmpFile, audioRes.data);
+
+        await sock.sendMessage(chatId, {
+          audio: require('fs').readFileSync(tmpFile),
+          mimetype: 'audio/mp4',
+          ptt: false,
+          fileName: video.title + '.mp3',
+        }, { quoted: msg });
+
+        require('fs').unlinkSync(tmpFile);
+        return true;
+      } catch (e) {
+        await sock.sendMessage(chatId, { text: '⚠️ Could not download that song right now. Try *.song ' + songQuery + '* directly!' }, { quoted: msg });
+        return true;
+      }
+    }
+
+    // ── YouTube search ─────────────────────────────────────────────────────────
+    case 'YOUTUBE': {
+      const ytQuery = cleanQuery.replace(/\b(search|find|look up|youtube|yt|video)\b/gi, '').trim() || rawText;
+      try {
+        if (!yts) throw new Error('yt-search not available');
+        const results = await yts(ytQuery);
+        const top = (results?.videos || []).slice(0, 5);
+        if (!top.length) throw new Error('No results');
+        const list = top.map((v, i) => (i + 1) + '. *' + v.title + '*\n   ⏱️ ' + v.timestamp + ' | 👁️ ' + (v.views ? v.views.toLocaleString() : 'N/A') + ' views\n   🔗 ' + v.url).join('\n\n');
+        await sock.sendMessage(chatId, { text: '🎬 *YouTube Results: ' + ytQuery + '*\n\n' + list }, { quoted: msg });
+        return true;
+      } catch (e) {
+        await sock.sendMessage(chatId, { text: '⚠️ Could not search YouTube right now. Try *.yts ' + ytQuery + '*' }, { quoted: msg });
+        return true;
+      }
+    }
+
+    // ── Translate ──────────────────────────────────────────────────────────────
+    case 'TRANSLATE': {
+      // Detect target language from message
+      const langMatch = rawText.match(/\b(to|into|in)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)?)\b/i);
+      const targetLang = langMatch ? langMatch[2].trim() : 'english';
+      const textToTranslate = cleanQuery
+        .replace(/\b(translate|translation|to|into|in)\b/gi, '')
+        .replace(new RegExp(targetLang, 'gi'), '')
+        .trim() || rawText;
+
+      await sock.sendMessage(chatId, { text: '🌍 Translating to *' + targetLang + '*...' }, { quoted: msg });
+      const prompt = 'Translate the following text to ' + targetLang + '. Return ONLY the translation, nothing else:\n\n"' + textToTranslate + '"';
+      const result = await callAI(prompt);
+      await sock.sendMessage(chatId, { text: '🌍 *Translation (' + targetLang + '):*\n\n' + result }, { quoted: msg });
+      return true;
+    }
+
+    // ── Summarize ──────────────────────────────────────────────────────────────
+    case 'SUMMARIZE': {
+      const textToSum = cleanQuery.replace(/\b(summarize|summary|tldr|tl;dr|shorten|brief|sum up)\b/gi, '').trim();
+      // Also check if replying to a message
+      const quotedText = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation
+        || msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.extendedTextMessage?.text || '';
+      const content = quotedText || textToSum;
+      if (!content || content.length < 20) {
+        await sock.sendMessage(chatId, { text: '📝 Reply to a long message with "summarize this" and I will shorten it for you!' }, { quoted: msg });
+        return true;
+      }
+      const result = await callAI('Summarize the following text in 3-5 bullet points. Be concise and clear:\n\n' + content);
+      await sock.sendMessage(chatId, { text: '📝 *Summary:*\n\n' + result }, { quoted: msg });
+      return true;
+    }
+
+    // ── TTS voice ──────────────────────────────────────────────────────────────
+    case 'TTS': {
+      const ttsText = cleanQuery.replace(/\b(say|speak|read|voice|tts|text.?to.?speech|send|note|message|saying|of|aloud|out loud|for me|in voice|a|an)\b/gi, '').trim() || rawText;
+      await sock.sendMessage(chatId, { text: '🎙️ Converting to voice: *' + ttsText.slice(0, 60) + (ttsText.length > 60 ? '...' : '') + '*' }, { quoted: msg });
+      try {
+        const ttsRes = await axios.get('https://api.streamelements.com/kappa/v2/speech', {
+          params: { voice: 'Brian', text: ttsText.slice(0, 500) },
+          responseType: 'arraybuffer',
+          timeout: 20000,
+        });
+        if (ttsRes.data && ttsRes.data.byteLength > 1000) {
+          const tmpFile = require('path').join(__dirname, '../../temp', 'aar_tts_' + Date.now() + '.mp3');
+          require('fs').writeFileSync(tmpFile, ttsRes.data);
+          await sock.sendMessage(chatId, { audio: require('fs').readFileSync(tmpFile), mimetype: 'audio/mp4', ptt: true }, { quoted: msg });
+          require('fs').unlinkSync(tmpFile);
+          return true;
+        }
+      } catch (_) {}
+      await sock.sendMessage(chatId, { text: '⚠️ Voice conversion failed. Try *.tts ' + ttsText.slice(0, 80) + '*' }, { quoted: msg });
+      return true;
+    }
+
+    // ── Story ──────────────────────────────────────────────────────────────────
+    case 'STORY': {
+      const storyTopic = cleanQuery.replace(/\b(write|tell|create|generate|make|a|an|short|story|tale|fiction|bedtime)\b/gi, '').trim() || 'an interesting adventure';
+      await sock.sendMessage(chatId, { text: '📖 Writing a story about *' + storyTopic + '*...' }, { quoted: msg });
+      const result = await callAI('Write a short, engaging story about: "' + storyTopic + '". Keep it under 300 words. Make it interesting with a beginning, middle, and end. Use vivid language.');
+      await sock.sendMessage(chatId, { text: '📖 *Story: ' + storyTopic + '*\n\n' + result + '\n\n> _Written by Ladybug AI — Dev-Ntando 🇿🇼_' }, { quoted: msg });
+      return true;
+    }
+
+    // ── Poem ───────────────────────────────────────────────────────────────────
+    case 'POEM': {
+      const poemTopic = cleanQuery.replace(/\b(write|create|make|generate|a|an|poem|poetry|rhyme|verse|haiku|sonnet)\b/gi, '').trim() || 'life';
+      await sock.sendMessage(chatId, { text: '✍️ Writing a poem about *' + poemTopic + '*...' }, { quoted: msg });
+      const result = await callAI('Write a beautiful, creative poem about: "' + poemTopic + '". Make it emotional and rhythmic. 3-4 stanzas.');
+      await sock.sendMessage(chatId, { text: '✍️ *Poem: ' + poemTopic + '*\n\n' + result + '\n\n> _Written by Ladybug AI — Dev-Ntando 🇿🇼_' }, { quoted: msg });
+      return true;
+    }
+
+    // ── Song lyrics generation ─────────────────────────────────────────────────
+    case 'LYRICS_GEN': {
+      const songTopic = cleanQuery.replace(/\b(write|create|make|generate|song|lyrics|chorus|verse|hook|a|an|some)\b/gi, '').trim() || 'life';
+      await sock.sendMessage(chatId, { text: '🎵 Writing song lyrics for *' + songTopic + '*...' }, { quoted: msg });
+      const result = await callAI('Write complete original song lyrics about: "' + songTopic + '". Include [VERSE 1], [CHORUS], [VERSE 2], [BRIDGE]. Make it rhyme and have good flow. Add a suggested genre and BPM at the top.');
+      await sock.sendMessage(chatId, { text: '🎵 *Song Lyrics: ' + songTopic + '*\n\n' + result + '\n\n> _Written by Ladybug AI — Dev-Ntando 🇿🇼_' }, { quoted: msg });
+      return true;
+    }
+
+    // ── AI sings ───────────────────────────────────────────────────────────────
+    case 'SING': {
+      const singTopic = cleanQuery.replace(/\b(sing|perform|a|an|song|me)\b/gi, '').trim() || 'something beautiful';
+      await sock.sendMessage(chatId, { text: '🎤 Let me sing you something about *' + singTopic + '*...' }, { quoted: msg });
+      // Write short singable lyrics then TTS them
+      const lyrics = await callAI('Write very short, singable lyrics (max 8 lines) about: "' + singTopic + '". Focus on rhythm. No formatting tags, just the lyrics.');
+      await sock.sendMessage(chatId, { text: '🎵 *' + singTopic + '*\n\n' + lyrics }, { quoted: msg });
+      try {
+        const singtts = 'I am singing for you now. ' + lyrics;
+        const ttsRes = await axios.get('https://api.streamelements.com/kappa/v2/speech', {
+          params: { voice: 'Brian', text: singtts.slice(0, 500) },
+          responseType: 'arraybuffer', timeout: 20000,
+        });
+        if (ttsRes.data && ttsRes.data.byteLength > 1000) {
+          const tmpFile = require('path').join(__dirname, '../../temp', 'aar_sing_' + Date.now() + '.mp3');
+          require('fs').writeFileSync(tmpFile, ttsRes.data);
+          await sock.sendMessage(chatId, { audio: require('fs').readFileSync(tmpFile), mimetype: 'audio/mp4', ptt: true }, { quoted: msg });
+          require('fs').unlinkSync(tmpFile);
+        }
+      } catch (_) {}
+      return true;
+    }
+
+    // ── Advice ─────────────────────────────────────────────────────────────────
+    case 'ADVICE': {
+      const situation = cleanQuery.replace(/\b(advice|advise|help|what should i do|how do i deal with|counsel)\b/gi, '').trim() || rawText;
+      const result = await callAI('Give thoughtful, practical life advice for this situation: "' + situation + '". Be empathetic, honest, and give 3 clear action steps. Keep it under 200 words.');
+      await sock.sendMessage(chatId, { text: '💡 *Advice:*\n\n' + result + '\n\n> _Ladybug AI — Dev-Ntando 🇿🇼_' }, { quoted: msg });
+      return true;
+    }
+
+    // ── Roast ──────────────────────────────────────────────────────────────────
+    case 'ROAST': {
+      const result = await callAI('Give a funny, savage but not cruel roast for ' + senderName + '. Make it clever and witty. One paragraph max.');
+      await sock.sendMessage(chatId, { text: '🔥 *Roast for ' + senderName + ':*\n\n' + result }, { quoted: msg });
+      return true;
+    }
+
+    // ── Joke ───────────────────────────────────────────────────────────────────
+    case 'JOKE': {
+      const result = await callAI('Tell me a funny, clean joke. Make it original and clever. Format: setup on one line, punchline on the next.');
+      await sock.sendMessage(chatId, { text: '😂 ' + result }, { quoted: msg });
+      return true;
+    }
+
+    // ── Flirt ──────────────────────────────────────────────────────────────────
+    case 'FLIRT': {
+      const result = await callAI('Give a smooth, original flirty pickup line or compliment for ' + senderName + '. Make it charming but not cringe. One line.');
+      await sock.sendMessage(chatId, { text: '💘 ' + result }, { quoted: msg });
+      return true;
+    }
+
+    // ── Debate ─────────────────────────────────────────────────────────────────
+    case 'DEBATE': {
+      const topic = cleanQuery.replace(/\b(debate|argue|both sides|pros and cons|for and against)\b/gi, '').trim() || rawText;
+      const result = await callAI('Debate both sides of: "' + topic + '". Format:\n\n✅ FOR:\n[3 strong points]\n\n❌ AGAINST:\n[3 strong points]\n\n⚖️ VERDICT:\n[balanced conclusion in 1-2 sentences]');
+      await sock.sendMessage(chatId, { text: '⚖️ *Debate: ' + topic + '*\n\n' + result }, { quoted: msg });
+      return true;
+    }
+
+    // ── Compliment ─────────────────────────────────────────────────────────────
+    case 'COMPLIMENT': {
+      const result = await callAI('Give a genuine, uplifting compliment for ' + senderName + '. Make it heartfelt and specific. 2-3 sentences.');
+      await sock.sendMessage(chatId, { text: '💐 ' + result }, { quoted: msg });
+      return true;
+    }
+
+    // ── Define ─────────────────────────────────────────────────────────────────
+    case 'DEFINE': {
+      const word = cleanQuery.replace(/\b(define|definition of|what does|mean|meaning of|dictionary)\b/gi, '').replace(/\bthe\b/gi, '').trim() || rawText;
+      const result = await callAI('Define "' + word + '". Format:\n📖 *' + word + '*\n\nDefinition: [clear definition]\n\nExample: [example sentence]\n\nSynonyms: [3 synonyms]');
+      await sock.sendMessage(chatId, { text: result }, { quoted: msg });
+      return true;
+    }
+
+    // ── Wikipedia / info ───────────────────────────────────────────────────────
+    case 'WIKI': {
+      const topic = cleanQuery.replace(/\b(wikipedia|wiki|who is|what is|tell me about|explain)\b/gi, '').trim() || rawText;
+      const result = await callAI('Give a concise, accurate Wikipedia-style summary of: "' + topic + '". Include key facts, dates, and why it matters. Keep it under 250 words.');
+      await sock.sendMessage(chatId, { text: '📚 *' + topic + '*\n\n' + result }, { quoted: msg });
+      return true;
+    }
+
+    // ── Weather ────────────────────────────────────────────────────────────────
+    case 'WEATHER': {
+      const location = cleanQuery.replace(/\b(weather|temperature|forecast|climate|in|at|for|today|tomorrow|now)\b/gi, '').trim() || 'Harare Zimbabwe';
+      try {
+        const wRes = await axios.get('https://wttr.in/' + encodeURIComponent(location) + '?format=3', { timeout: 10000 });
+        await sock.sendMessage(chatId, { text: '🌤️ *Weather: ' + location + '*\n\n' + wRes.data }, { quoted: msg });
+      } catch (_) {
+        const result = await callAI('What is the typical weather like in ' + location + '? Give a brief overview of temperature, climate, and current season.');
+        await sock.sendMessage(chatId, { text: '🌤️ *Weather info: ' + location + '*\n\n' + result }, { quoted: msg });
+      }
+      return true;
+    }
+
+    default:
+      return false;
+  }
+}
+
 // ─── DM handler (export for message handler integration) ──────────────────────
 async function handleIncomingDM(sock, msg) {
   const cfg = readConfig();
@@ -266,48 +618,31 @@ async function handleIncomingDM(sock, msg) {
 
     await sock.sendPresenceUpdate('composing', chatId);
 
-    // ── Image generation detection ──────────────────────────────────────────
-    // Catch requests like "generate an image of...", "make me a picture of...", etc.
-    const imgReqPattern = /\b(generate|create|make|draw|design|produce|give me|show me|send me)\s+(me\s+)?(a|an|some|the)?\s*(image|picture|photo|pic|art|artwork|illustration|painting|drawing|wallpaper|poster|logo)\b/i;
-    const imgOfPattern  = /\b(image|picture|photo|pic|art|painting|drawing)\s+of\b/i;
-    const imgGenVerb    = /\b(imagine|visualize|render|sketch)\b.{0,60}\b(image|picture|scene|art|of)\b/i;
+    // ── Intent detection — route to the right capability ───────────────────
+    const intent = detectIntent(rawText);
 
-    if (imgReqPattern.test(rawText) || imgOfPattern.test(rawText) || imgGenVerb.test(rawText)) {
-      // Strip filler words to get the actual visual prompt
+    if (intent === 'IMAGE_GEN') {
       let imgPrompt = rawText
         .replace(/\b(please|can you|could you|i want|i need|i would like|give me|show me|send me)\b/gi, '')
         .replace(/\b(generate|create|make|draw|design|produce|imagine|visualize|render|sketch)\s*(me\s*)?(a|an|some|the)?\s*/gi, '')
         .replace(/\b(image|picture|photo|pic|art|artwork|illustration|painting|drawing|wallpaper|poster|logo)\s*(of)?\s*/gi, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-
+        .replace(/\s+/g, ' ').trim();
       if (!imgPrompt || imgPrompt.length < 3) imgPrompt = rawText.trim();
 
-      await sock.sendMessage(chatId, {
-        text: '🎨 Generating image: *' + imgPrompt + '*...',
-      }, { quoted: msg });
+      await sock.sendMessage(chatId, { text: '\u{1F3A8} Generating image: *' + imgPrompt + '*...' }, { quoted: msg });
 
       let imgSent = false;
-
-      // Try primary API: MagicStudio
       const imgApis = [
-        () => axios.get('https://api.siputzx.my.id/api/ai/magicstudio', {
-          params: { prompt: imgPrompt }, responseType: 'arraybuffer', timeout: 90000,
-        }),
-        () => axios.get('https://api.siputzx.my.id/api/ai/stablediffusion', {
-          params: { prompt: imgPrompt }, responseType: 'arraybuffer', timeout: 60000,
-        }),
+        () => axios.get('https://api.siputzx.my.id/api/ai/magicstudio', { params: { prompt: imgPrompt }, responseType: 'arraybuffer', timeout: 90000 }),
+        () => axios.get('https://api.siputzx.my.id/api/ai/stablediffusion', { params: { prompt: imgPrompt }, responseType: 'arraybuffer', timeout: 60000 }),
+        () => axios.get('https://image.pollinations.ai/prompt/' + encodeURIComponent(imgPrompt) + '?width=800&height=800&nologo=true', { responseType: 'arraybuffer', timeout: 60000 }),
       ];
-
       for (const apiFn of imgApis) {
         try {
           const res = await apiFn();
           const buf = Buffer.from(res.data);
           if (buf && buf.length > 2000) {
-            await sock.sendMessage(chatId, {
-              image: buf,
-              caption: '🎨 *' + imgPrompt + '*\n> _Generated by Ladybug AI — Dev-Ntando_ 🇿🇼',
-            }, { quoted: msg });
+            await sock.sendMessage(chatId, { image: buf, caption: '\u{1F3A8} *' + imgPrompt + '*\n> _Ladybug AI \u2014 Dev-Ntando_ \u{1F1FF}\u{1F1FC}' }, { quoted: msg });
             imgSent = true;
             if (memoryOn) {
               userMem.history = trimHistory([...history,
@@ -319,13 +654,21 @@ async function handleIncomingDM(sock, msg) {
           }
         } catch (_) {}
       }
-
-      if (!imgSent) {
-        await sock.sendMessage(chatId, {
-          text: '⚠️ Image generation failed right now.\nTry: *.imagine ' + imgPrompt + '* directly!',
-        }, { quoted: msg });
-      }
+      if (!imgSent) await sock.sendMessage(chatId, { text: '\u26A0\uFE0F Image generation failed. Try *.imagine ' + imgPrompt + '*' }, { quoted: msg });
       return;
+    }
+
+    if (intent && intent !== 'IMAGE_GEN') {
+      const handled = await handleIntent(intent, rawText, sock, msg, chatId, senderName);
+      if (handled) {
+        if (memoryOn) {
+          userMem.history = trimHistory([...history,
+            { role: 'user', content: rawText },
+            { role: 'assistant', content: '[' + intent + ' action performed]' }]);
+          mem[senderJid] = userMem; saveMemory(mem);
+        }
+        return;
+      }
     }
 
     // ── Normal AI reply ─────────────────────────────────────────────────────
