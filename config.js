@@ -85,7 +85,7 @@ module.exports = {
     antispamAction:        'warn',     // 'warn' | 'kick'
 
     // ── V5: Word Filter ────────────────────────
-    wordfilter:            true,      // Off by default — add words first
+    wordfilter:            false,      // Off by default — add words first
     wordfilterAction:      'delete',   // 'delete' | 'warn' | 'kick'
 
     // ── V5: Poll Logging ───────────────────────
