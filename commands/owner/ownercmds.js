@@ -122,7 +122,37 @@ module.exports = {
         `  ${p}note del <key>             — Delete a note\n\n` +
 
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `_Prefix: ${p}  |  Version: Ladybug V5.1_`;
+        `🆕 *New Owner Commands (v5.2)*\n\n` +
+
+        `📊 *Dashboard*\n` +
+        `  ${p}dashboard                  — Full bot + system stats panel\n\n` +
+
+        `📡 *Group Broadcast*\n` +
+        `  ${p}gbroadcast <message>        — Broadcast to ALL groups\n` +
+        `  ${p}gbroadcast list             — List groups with index numbers\n` +
+        `  ${p}gbroadcast -n 1,3 | <msg>   — Send to specific groups by number\n\n` +
+
+        `💬 *Custom Replies*\n` +
+        `  ${p}customreply add <kw> | <reply> — Add keyword auto-reply\n` +
+        `  ${p}customreply list            — View all keyword rules\n` +
+        `  ${p}customreply del <keyword>   — Remove a keyword rule\n` +
+        `  ${p}customreply on|off          — Toggle custom replies\n\n` +
+
+        `⚠️ *Warn System*\n` +
+        `  ${p}warnconfig status           — View warn system settings\n` +
+        `  ${p}warnconfig setmax <n>       — Set max warns before action\n` +
+        `  ${p}warnconfig setaction <kick|ban|mute>\n` +
+        `  ${p}warnconfig setexpiry <days> — Warn expiry (0=never)\n\n` +
+
+        `🖼️ *Group Media*\n` +
+        `  ${p}setgrouppp                  — Set group profile picture (reply to image)\n\n` +
+
+        `🎵 *AI Shazam*\n` +
+        `  ${p}shazam                      — Identify any song from audio/video\n` +
+        `  _(reply to audio/voice note/video — 5-API fallback chain)_\n\n` +
+
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `_Prefix: ${p}  |  Version: Ladybug V5.2_`;
 
       await extra.reply(menuText);
 
