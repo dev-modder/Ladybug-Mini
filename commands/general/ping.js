@@ -25,10 +25,10 @@ function formatUptime(sec) {
   const m = Math.floor((sec % 3600) / 60);
   const s = Math.floor(sec % 60);
   const p = [];
-  if (d) p.push(`${d}h`);
-  if (h) p.push(`${h}j`);
+  if (d) p.push(`${d}d`);
+  if (h) p.push(`${h}h`);
   if (m) p.push(`${m}m`);
-  if (s || !p.length) p.push(`${s}d`);
+  if (s || !p.length) p.push(`${s}s`);
   return p.join(' ');
 }
 
