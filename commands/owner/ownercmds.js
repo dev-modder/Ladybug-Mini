@@ -79,7 +79,50 @@ module.exports = {
         `  ${p}restart                   — Restart the bot\n\n` +
 
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `_Prefix: ${p}  |  Version: Ladybug V5_`;
+        `🆕 *New Owner Commands (v5.1)*\n\n` +
+
+        `👤 *Presence & Visibility*\n` +
+        `  ${p}setstatustext <text>       — Update bot WhatsApp status/about\n` +
+        `  ${p}ghostmode on|off|status    — Invisible mode (no presence/typing)\n` +
+        `  ${p}autotyping on|off          — Toggle typing indicator\n` +
+        `  ${p}autoread on|off            — Auto-read all messages (blue ticks)\n\n` +
+
+        `🏘️ *Group Tools*\n` +
+        `  ${p}grouplist                  — List all groups bot is in\n` +
+        `  ${p}kickall confirm            — Kick all non-admins from group\n` +
+        `  ${p}spromote @user|number      — Promote user in ALL groups\n` +
+        `  ${p}antibot on|off|scan        — Auto-kick other bots from groups\n\n` +
+
+        `💬 *Messaging*\n` +
+        `  ${p}sendpm <number> | <msg>    — Private message any number\n` +
+        `  ${p}forward <number|JID>       — Forward quoted msg to another chat\n` +
+        `  ${p}schedulemsg <min> | <msg>  — Schedule a message (later)\n` +
+        `  ${p}schedulemsg list           — View scheduled messages\n` +
+        `  ${p}schedulemsg cancel <id>    — Cancel a scheduled message\n` +
+        `  ${p}purge <count>              — Delete bot's own recent messages\n\n` +
+
+        `🔧 *Settings*\n` +
+        `  ${p}chatlist [groups|private]  — List all active chats\n` +
+        `  ${p}blocklist                  — View all blocked contacts\n` +
+        `  ${p}setreactmoji <emoji>       — Set auto-react emoji\n` +
+        `  ${p}togglecmd <cmd> on|off     — Enable/disable specific commands\n` +
+        `  ${p}ratelimit <secs>|off       — Set per-user command cooldown\n` +
+        `  ${p}setlang <language>         — Set default AI response language\n\n` +
+
+        `🧠 *AI Settings*\n` +
+        `  ${p}setaipersonality <text>    — Set AI personality/system prompt\n` +
+        `  ${p}setaipersonality preset X  — Load a preset (friendly/funny/etc)\n` +
+        `  ${p}clearmemory all|<number>   — Clear AI conversation memory\n` +
+        `  ${p}setwelcomemsg <text>       — Set global welcome message template\n\n` +
+
+        `📝 *Notes*\n` +
+        `  ${p}note add <key> <text>      — Save a personal note\n` +
+        `  ${p}note get <key>             — Retrieve a note\n` +
+        `  ${p}note list                  — List all notes\n` +
+        `  ${p}note del <key>             — Delete a note\n\n` +
+
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `_Prefix: ${p}  |  Version: Ladybug V5.1_`;
 
       await extra.reply(menuText);
 
