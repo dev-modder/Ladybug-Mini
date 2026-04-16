@@ -1,71 +1,32 @@
 /**
- * Motivate Command - AI generates personalized motivational messages (Ladybug V5)
- *
- * Usage: .motivate
- *        .motivate <situation/feeling>
+ * Motivate v3 — Ladybug Bot Mini
+ * .motivate | .motivate @user | .motivate <name> --type <type>
  */
-
 'use strict';
-
-const axios = require('axios');
-
-const FALLBACKS = [
-  "🌟 Every expert was once a beginner. Keep going — your progress matters more than your pace.",
-  "💪 You've survived 100% of your bad days so far. Today is no different. You've got this.",
-  "🚀 The only limit is the one you set in your mind. Push past it — one step at a time.",
-  "🔥 Difficult roads often lead to beautiful destinations. Stay the course.",
-  "🌈 Your struggle today is your strength tomorrow. Don't stop now.",
-  "⭐ You are capable of amazing things. Believe it. Act on it. Prove it.",
-  "🏆 Success isn't about being perfect — it's about never giving up. Keep pushing.",
-];
-
-async function callAI(prompt) {
-  const endpoints = [
-    `https://api.shizo.top/ai/gpt?apikey=shizo&query=${encodeURIComponent(prompt)}`,
-    `https://api.siputzx.my.id/api/ai/chatgpt?query=${encodeURIComponent(prompt)}`,
-    `https://widipe.com/openai?text=${encodeURIComponent(prompt)}`,
-  ];
-  for (const url of endpoints) {
-    try {
-      const r = await axios.get(url, { timeout: 12000 });
-      const d = r.data;
-      const ans = d?.msg || d?.result || d?.data?.text || d?.response;
-      if (ans && ans.trim().length > 10) return ans.trim();
-    } catch (_) {}
-  }
-  return null;
-}
-
+const APIs = require('../../utils/api');
+const TYPES = { general:'general life motivation', hustle:'entrepreneurship and hustle culture', student:'student and academic motivation', sports:'sports and athletic performance', heartbreak:'recovering from heartbreak and loss', comeback:'making a comeback after failure' };
 module.exports = {
   name: 'motivate',
-  aliases: ['motivation', 'inspire', 'hype', 'cheer'],
+  aliases: ['inspire', 'motivation', 'hype', 'encourage'],
   category: 'ai',
-  description: 'Get a personalized AI motivational message',
-  usage: '.motivate [situation or feeling]',
-
+  description: 'Generate personalised AI motivation speeches',
+  usage: '.motivate [name] [--type general|hustle|student|sports|heartbreak|comeback]',
   async execute(sock, msg, args, extra) {
     try {
-      const senderName = msg.pushName || 'Champion';
-      const situation  = args.join(' ').trim();
-
-      await sock.sendPresenceUpdate('composing', extra.from);
-
-      let prompt;
-      if (situation) {
-        prompt = `Write a powerful, personal, and uplifting motivational message for someone named ${senderName} who is going through this situation: "${situation}". Be genuine, warm, and empowering. Include 1-2 relevant emojis. Keep it under 120 words.`;
-      } else {
-        prompt = `Write a short, punchy, and genuinely inspiring motivational message for ${senderName}. Make it personal and energetic. Include 1-2 emojis. Keep it under 100 words.`;
+      let type = 'general', name = null;
+      const cleanArgs = [];
+      for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--type' && args[i+1]) { type = args[++i].toLowerCase(); }
+        else { cleanArgs.push(args[i]); }
       }
-
-      const result = await callAI(prompt);
+      if (cleanArgs.length) name = cleanArgs.join(' ').replace('@', '').trim();
+      const typeDesc = TYPES[type] || TYPES.general;
+      const nameStr  = name ? ` for someone named ${name}` : '';
+      await sock.sendPresenceUpdate('composing', extra.from);
+      const prompt = `Write a powerful, original motivational speech${nameStr} focused on ${typeDesc}. It should be personal, emotional, and inspiring. 150-200 words. End with a strong call to action.`;
+      const result = await APIs.chatAI(prompt, 'You are an inspiring motivational coach. Your words ignite passion, drive, and belief in people.');
       await sock.sendPresenceUpdate('paused', extra.from);
-
-      const message = result || FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
-      await extra.reply(`✨ *For you, ${senderName}*\n\n${message}`);
-    } catch (error) {
-      console.error('[motivate] Error:', error);
-      const fallback = FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
-      await extra.reply(`✨ ${fallback}`);
-    }
-  },
+      await extra.reply(`💪 *Motivation${name ? ' for '+name : ''}*\n━━━━━━━━━━━━━━━━━━━━\n${result}\n━━━━━━━━━━━━━━━━━━━━\n🔥 You\'ve got this!\n> _Ladybug Bot Mini v3_`);
+    } catch (e) { await extra.reply(`❌ ${e.message}`); }
+  }
 };

@@ -1,93 +1,39 @@
 /**
- * Story Command - Generate a short AI story based on a prompt
- * Ladybug Bot Mini | by Dev-Ntando
- *
- * Usage:
- *   .story <prompt>
- *   .story a lost robot looking for its owner
- *   .story <genre> | <prompt>   e.g.  .story horror | alone in the house
+ * Story v3 — Ladybug Bot Mini
+ * .story <prompt> [--genre] [--length short|long] [--chars <names>]
  */
-
 'use strict';
-
 const APIs = require('../../utils/api');
-
-const GENRES = ['adventure', 'horror', 'romance', 'comedy', 'sci-fi', 'fantasy', 'mystery', 'thriller'];
-
+const GENRES = { horror:'terrifying horror', romance:'romantic', adventure:'action-adventure', comedy:'hilarious comedy', mystery:'suspenseful mystery', scifi:'science fiction', fantasy:'epic fantasy', drama:'emotional drama', thriller:'psychological thriller', folklore:'African folklore' };
 module.exports = {
   name: 'story',
-  aliases: ['aistory', 'shortstory', 'genscene', 'cerita'],
+  aliases: ['writestory', 'narrate', 'tale', 'shortstory'],
   category: 'ai',
-  description: 'Generate a short AI-written story from a prompt',
-  usage: '.story <prompt>  OR  .story <genre> | <prompt>',
-
+  description: 'Generate creative stories with genre control',
+  usage: '.story <prompt> [--genre horror|romance|adventure|comedy|mystery|scifi|fantasy|drama|thriller|folklore] [--long]',
   async execute(sock, msg, args, extra) {
     try {
-      if (!args.length) {
-        return extra.reply(
-          `📖 *AI Story Generator*\n\n` +
-          `Usage: .story <prompt>\n` +
-          `       .story <genre> | <prompt>\n\n` +
-          `Genres: ${GENRES.join(', ')}\n\n` +
-          `Examples:\n` +
-          `  .story a boy who finds a magic map\n` +
-          `  .story horror | waking up in an empty city`
-        );
+      if (!args.length) return extra.reply(`📖 *Story Generator v3*\n\nUsage: .story <prompt>\n\nGenres: ${Object.keys(GENRES).join(', ')}\n\nExamples:\n  .story a boy who finds a magic phone --genre scifi\n  .story two strangers meet at a bus stop --genre romance\n  .story a detective in Harare --genre mystery\n\n> _Ladybug Bot Mini v3_`);
+      let genre = null, long = false, chars = null;
+      const cleanArgs = [];
+      for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--genre' && args[i+1]) { genre = args[++i].toLowerCase(); }
+        else if (args[i] === '--long') { long = true; }
+        else if (args[i] === '--chars' && args[i+1]) { chars = args[++i]; }
+        else { cleanArgs.push(args[i]); }
       }
-
-      const fullText = args.join(' ').trim();
-      let genre  = null;
-      let prompt = fullText;
-
-      if (fullText.includes('|')) {
-        const parts = fullText.split('|');
-        const possibleGenre = parts[0].trim().toLowerCase();
-        if (GENRES.includes(possibleGenre) || possibleGenre.length < 20) {
-          genre  = parts[0].trim();
-          prompt = parts.slice(1).join('|').trim();
-        }
-      }
-
-      await extra.reply(`📖 Writing your story${genre ? ` (${genre})` : ''}...`);
-
-      const genreStr = genre
-        ? `Genre: ${genre}. `
-        : `Pick a fitting genre. `;
-
-      const aiPrompt =
-        `You are a creative storyteller. ${genreStr}` +
-        `Write a short, engaging story (200-300 words) based on this prompt: "${prompt}". ` +
-        `Structure it with a clear beginning, middle, and end. ` +
-        `Give the story a creative title. ` +
-        `Format:\nTitle: [title]\n\n[story text]`;
-
-      const response = await APIs.chatAI(aiPrompt);
-      const story = (
-        response?.response ||
-        response?.msg ||
-        response?.data?.msg ||
-        (typeof response === 'string' ? response : null) ||
-        'Could not generate story right now. Try again!'
-      ).trim();
-
-      const senderName = msg.pushName || extra.sender?.split('@')[0] || 'you';
-
-      await extra.reply(
-        `╔══════════════════════╗\n` +
-        `║  📖  *AI STORY TIME*   ║\n` +
-        `╚══════════════════════╝\n\n` +
-        `✍️ *Prompt:* ${prompt}\n` +
-        `${genre ? `🎭 *Genre:* ${genre}\n` : ''}` +
-        `👤 *By request of:* ${senderName}\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `${story}\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n` +
-        `_🤖 AI-generated story. Use .story <prompt> for another one!_`
-      );
-
-    } catch (error) {
-      console.error('[story] Error:', error);
-      await extra.reply(`❌ Story generation failed: ${error.message}`);
-    }
-  },
+      const prompt = cleanArgs.join(' ').trim();
+      if (!prompt) return extra.reply('❌ Please provide a story prompt.');
+      const genreDesc = genre && GENRES[genre] ? GENRES[genre] : 'engaging and creative';
+      const length    = long ? '600-800 words' : '200-350 words';
+      const charStr   = chars ? ` Main characters: ${chars}.` : '';
+      await extra.reply(`📖 *Writing your ${genre || ''} story...*\n⏳ Please wait...`);
+      await sock.sendPresenceUpdate('composing', extra.from);
+      const sysPrompt = `You are a talented creative writer. Write compelling, vivid, original stories with strong narrative structure, interesting characters, and satisfying endings.`;
+      const userPrompt = `Write a ${genreDesc} short story (${length}) based on this prompt: "${prompt}"${charStr}\n\nInclude: engaging opening, character development, rising tension, and a satisfying conclusion. Make it memorable.`;
+      const result = await APIs.chatAI(userPrompt, sysPrompt);
+      await sock.sendPresenceUpdate('paused', extra.from);
+      await extra.reply(`📖 *${genre ? genre.charAt(0).toUpperCase()+genre.slice(1)+' ' : ''}Story*\n━━━━━━━━━━━━━━━━━━━━\n${result}\n━━━━━━━━━━━━━━━━━━━━\n> _Ladybug Bot Mini v3_`);
+    } catch (e) { await extra.reply(`❌ ${e.message}`); }
+  }
 };

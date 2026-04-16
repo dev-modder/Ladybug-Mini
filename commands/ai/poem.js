@@ -1,87 +1,34 @@
 /**
- * Poem Command - Generate an AI poem
- * Ladybug Bot Mini | by Dev-Ntando
- *
- * Usage:
- *   .poem <topic>
- *   .poem <style> | <topic>   e.g. .poem haiku | cherry blossoms
+ * Poem v3 — Ladybug Bot Mini
+ * .poem <topic> [--style haiku|sonnet|free|limerick|acrostic]
  */
-
 'use strict';
-
 const APIs = require('../../utils/api');
-
-const STYLES = ['haiku', 'sonnet', 'free verse', 'limerick', 'ballad', 'ode', 'acrostic', 'rhyming couplets'];
-
+const STYLES = { haiku:'haiku (5-7-5 syllable structure, 3 lines)', sonnet:'Shakespearean sonnet (14 lines, ABAB CDCD EFEF GG rhyme scheme)', free:'free verse poem (no rhyme constraints, modern style)', limerick:'limerick (AABBA rhyme scheme, humorous)', acrostic:'acrostic poem where the first letters spell out the topic', ballad:'ballad (narrative poem with ABAB rhyme, 4+ stanzas)', rap:'rap verse with rhymes and rhythm' };
 module.exports = {
   name: 'poem',
-  aliases: ['aipoem', 'poetry', 'syair', 'puisi'],
+  aliases: ['poetry', 'verse', 'rhyme', 'rap'],
   category: 'ai',
-  description: 'Generate an AI poem about any topic',
-  usage: '.poem <topic>  OR  .poem <style> | <topic>',
-
+  description: 'Generate creative poems in multiple styles',
+  usage: '.poem <topic> [--style haiku|sonnet|free|limerick|acrostic|ballad|rap]',
   async execute(sock, msg, args, extra) {
     try {
-      if (!args.length) {
-        return extra.reply(
-          `🖊️ *AI Poem Generator*\n\n` +
-          `Usage: .poem <topic>\n` +
-          `       .poem <style> | <topic>\n\n` +
-          `Styles: ${STYLES.join(', ')}\n\n` +
-          `Examples:\n` +
-          `  .poem the ocean at midnight\n` +
-          `  .poem haiku | autumn leaves\n` +
-          `  .poem limerick | my lazy cat`
-        );
+      if (!args.length) return extra.reply(`🎭 *Poem Generator v3*\n\nUsage: .poem <topic>\n\nStyles: ${Object.keys(STYLES).join(', ')}\n\nExamples:\n  .poem Zimbabwe --style acrostic\n  .poem heartbreak --style sonnet\n  .poem my dog --style limerick\n\n> _Ladybug Bot Mini v3_`);
+      let style = 'free';
+      const cleanArgs = [];
+      for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--style' && args[i+1]) { style = args[++i].toLowerCase(); }
+        else { cleanArgs.push(args[i]); }
       }
-
-      const fullText = args.join(' ').trim();
-      let style = 'free verse';
-      let topic = fullText;
-
-      if (fullText.includes('|')) {
-        const parts = fullText.split('|');
-        const possibleStyle = parts[0].trim().toLowerCase();
-        if (STYLES.some(s => possibleStyle.includes(s)) || possibleStyle.length < 25) {
-          style = parts[0].trim();
-          topic = parts.slice(1).join('|').trim();
-        }
-      }
-
-      await extra.reply(`🖊️ Writing a *${style}* poem about *"${topic}"*...`);
-
-      const aiPrompt =
-        `You are a gifted poet. Write a beautiful ${style} poem about: "${topic}". ` +
-        `Give it a creative title. Use vivid imagery and emotion. ` +
-        `Format:\nTitle: [poem title]\n\n[poem lines]`;
-
-      const response = await APIs.chatAI(aiPrompt);
-      const poem = (
-        response?.response ||
-        response?.msg ||
-        response?.data?.msg ||
-        (typeof response === 'string' ? response : null) ||
-        'Could not generate poem right now. Try again!'
-      ).trim();
-
-      const senderName = msg.pushName || extra.sender?.split('@')[0] || 'you';
-
-      await extra.reply(
-        `╔══════════════════════╗\n` +
-        `║  🖊️  *AI POEM*          ║\n` +
-        `╚══════════════════════╝\n\n` +
-        `📌 *Topic:* ${topic}\n` +
-        `🎭 *Style:* ${style}\n` +
-        `👤 *For:* ${senderName}\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `${poem}\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n` +
-        `_🤖 AI-generated poem | Use .poem <topic> for another_`
-      );
-
-    } catch (error) {
-      console.error('[poem] Error:', error);
-      await extra.reply(`❌ Poem generation failed: ${error.message}`);
-    }
-  },
+      const topic = cleanArgs.join(' ').trim();
+      if (!topic) return extra.reply('❌ Please provide a poem topic.');
+      const styleDesc = STYLES[style] || STYLES.free;
+      await extra.reply(`🎭 Writing a *${style}* poem about: *${topic}*...`);
+      await sock.sendPresenceUpdate('composing', extra.from);
+      const prompt = `Write a beautiful, original ${styleDesc} about "${topic}". Make it evocative, emotional, and memorable. Only output the poem itself, no intro text.`;
+      const result = await APIs.chatAI(prompt, 'You are a gifted poet. Write creative, emotionally resonant poetry with vivid imagery and strong rhythm.');
+      await sock.sendPresenceUpdate('paused', extra.from);
+      await extra.reply(`🎭 *Poem: ${topic}*\n━━━━━━━━━━━━━━━━━━━━\n${result}\n━━━━━━━━━━━━━━━━━━━━\n🖊️ Style: ${style}\n> _Ladybug Bot Mini v3_`);
+    } catch (e) { await extra.reply(`❌ ${e.message}`); }
+  }
 };

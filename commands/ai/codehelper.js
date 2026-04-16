@@ -1,88 +1,91 @@
 /**
- * CodeHelper Command - AI coding assistant (Ladybug V5)
- *
- * Usage: .code <question or code snippet>
- *        .code fix | <broken code>
- *        .code review | <code>
- *        .code explain | <code>
+ * ╔══════════════════════════════════════════════════╗
+ * ║  CodeHelper v3 — Ladybug Bot Mini                ║
+ * ║  AI coding assistant: fix, review, explain,      ║
+ * ║  generate, debug, convert, comment               ║
+ * ╚══════════════════════════════════════════════════╝
  */
 
 'use strict';
 
-const axios = require('axios');
+const APIs = require('../../utils/api');
 
-async function callAI(prompt) {
-  const endpoints = [
-    `https://api.shizo.top/ai/gpt?apikey=shizo&query=${encodeURIComponent(prompt)}`,
-    `https://api.siputzx.my.id/api/ai/chatgpt?query=${encodeURIComponent(prompt)}`,
-    `https://widipe.com/openai?text=${encodeURIComponent(prompt)}`,
-  ];
-  for (const url of endpoints) {
-    try {
-      const r = await axios.get(url, { timeout: 20000 });
-      const d = r.data;
-      const ans = d?.msg || d?.result || d?.data?.text || d?.response;
-      if (ans && ans.trim().length > 5) return ans.trim();
-    } catch (_) {}
-  }
-  throw new Error('AI coding assistant unavailable right now.');
-}
+const MODES = {
+  fix:      'Fix all bugs in this code and explain what was wrong:',
+  review:   'Review this code for best practices, performance, and security issues. Be specific:',
+  explain:  'Explain this code step-by-step in simple terms a beginner would understand:',
+  comment:  'Add clear, helpful inline comments to every significant line of this code:',
+  optimize: 'Optimize this code for better performance and readability. Show the improved version:',
+  convert:  'Convert this code to the language or framework specified. Show the full converted code:',
+  generate: 'Generate clean, well-commented code for this requirement:',
+  debug:    'Debug this code. Identify ALL errors, explain each one, and provide the corrected code:',
+  test:     'Write comprehensive unit tests for this code using the appropriate test framework:',
+};
 
 module.exports = {
   name: 'code',
-  aliases: ['codehelp', 'codeai', 'devhelp', 'debug'],
+  aliases: ['codehelper', 'fix', 'debug', 'codereview', 'devai', 'dev'],
   category: 'ai',
-  description: 'AI coding assistant — write, fix, review, or explain code',
-  usage: '.code <question> | .code fix | <code> | .code review | <code> | .code explain | <code>',
+  description: 'AI coding assistant — fix, review, explain, generate, and debug code',
+  usage: '.code <mode> <code>   Modes: fix | review | explain | comment | optimize | convert | generate | debug | test',
 
   async execute(sock, msg, args, extra) {
     try {
       if (!args.length) {
         return extra.reply(
-          '💻 *Code Helper*\n\n' +
-          'Usage:\n' +
-          '.code <coding question>\n' +
-          '.code fix | <broken code>\n' +
-          '.code review | <code>\n' +
-          '.code explain | <code>\n\n' +
-          'Example: .code fix | console.log("Hello" + name'
+          `💻 *CodeHelper AI v3*\n\n` +
+          `Your AI coding assistant.\n\n` +
+          `*Modes:*\n` +
+          Object.keys(MODES).map(m => `  • *.code ${m}* <code>`).join('\n') +
+          `\n\n*Examples:*\n` +
+          `  .code fix function add(a,b){retun a+b}\n` +
+          `  .code explain for(let i=0;i<arr.length;i++){}\n` +
+          `  .code generate a Node.js function that reads a JSON file\n` +
+          `  .code convert <Python code> to JavaScript\n\n` +
+          `> _Ladybug Bot Mini v3_`
         );
       }
 
-      const full = args.join(' ');
-      let mode = 'help';
-      let content = full;
+      const modeKey = args[0].toLowerCase();
+      let mode  = MODES[modeKey] || null;
+      let codeInput;
 
-      if (full.includes('|')) {
-        const parts = full.split('|');
-        const sub = parts[0].trim().toLowerCase();
-        if (['fix', 'review', 'explain'].includes(sub)) {
-          mode    = sub;
-          content = parts.slice(1).join('|').trim();
-        }
+      if (mode) {
+        codeInput = args.slice(1).join(' ').trim();
+      } else {
+        // No explicit mode — auto-detect intent
+        mode = 'Analyse this code and provide the most helpful response (fix bugs if any, explain what it does, and suggest improvements):';
+        codeInput = args.join(' ').trim();
       }
 
+      // Try quoted message if no code provided
+      if (!codeInput) {
+        const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+        codeInput = (quoted?.conversation || quoted?.extendedTextMessage?.text || '').trim();
+      }
+
+      if (!codeInput) return extra.reply('❌ Please provide some code or a description.');
+      if (codeInput.length > 4000) return extra.reply('❌ Code too long. Max 4000 characters.');
+
+      await extra.reply(`💻 *Analysing code...*\n⚙️ Mode: ${modeKey || 'auto'}`);
       await sock.sendPresenceUpdate('composing', extra.from);
 
-      let prompt;
-      if (mode === 'fix') {
-        prompt = `Fix this code and explain what was wrong:\n\n${content}\n\nProvide the fixed code and a brief explanation of the bug(s).`;
-      } else if (mode === 'review') {
-        prompt = `Review this code and provide:\n1. What it does\n2. Any bugs or issues\n3. Improvement suggestions\n\nCode:\n${content}`;
-      } else if (mode === 'explain') {
-        prompt = `Explain what this code does step by step in simple terms:\n\n${content}`;
-      } else {
-        prompt = `You are an expert programmer. Answer this coding question clearly with code examples:\n\n${content}`;
-      }
+      const prompt = `${mode}\n\n\`\`\`\n${codeInput}\n\`\`\`\n\nProvide a clear, practical response.`;
+      const result = await APIs.chatAI(prompt, 'You are an expert software engineer and coding mentor. Give precise, practical, well-explained answers. Use code blocks where appropriate.');
 
-      const result = await callAI(prompt);
       await sock.sendPresenceUpdate('paused', extra.from);
 
-      const modeEmoji = { help: '💡', fix: '🔧', review: '🔍', explain: '📖' };
-      await extra.reply(`${modeEmoji[mode] || '💻'} *Code ${mode.charAt(0).toUpperCase() + mode.slice(1)}*\n\n${result}`);
+      await extra.reply(
+        `💻 *CodeHelper AI*\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `${result}\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `> _Ladybug Bot Mini v3_`
+      );
+
     } catch (error) {
-      console.error('[code] Error:', error);
+      console.error('[codehelper] Error:', error.message);
       await extra.reply(`❌ ${error.message}`);
     }
-  },
+  }
 };

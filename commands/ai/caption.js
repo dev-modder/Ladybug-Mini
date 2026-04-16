@@ -1,84 +1,34 @@
 /**
- * Caption Command - AI generates social media captions (Ladybug V5)
- *
- * Usage: .caption <description of photo/post>
- *        .caption <platform> | <description>
- *
- * Platforms: instagram, twitter, tiktok, facebook, linkedin
+ * Caption v3 — Ladybug Bot Mini
+ * .caption <platform> | <description>  [--hashtags] [--cta]
  */
-
 'use strict';
-
-const axios = require('axios');
-
-async function callAI(prompt) {
-  const endpoints = [
-    `https://api.shizo.top/ai/gpt?apikey=shizo&query=${encodeURIComponent(prompt)}`,
-    `https://api.siputzx.my.id/api/ai/chatgpt?query=${encodeURIComponent(prompt)}`,
-    `https://widipe.com/openai?text=${encodeURIComponent(prompt)}`,
-  ];
-  for (const url of endpoints) {
-    try {
-      const r = await axios.get(url, { timeout: 12000 });
-      const d = r.data;
-      const ans = d?.msg || d?.result || d?.data?.text || d?.response;
-      if (ans && ans.trim().length > 5) return ans.trim();
-    } catch (_) {}
-  }
-  throw new Error('AI unavailable right now.');
-}
-
-const PLATFORMS = ['instagram', 'twitter', 'tiktok', 'facebook', 'linkedin'];
-
+const APIs = require('../../utils/api');
+const PLATFORMS = { instagram:'Instagram', twitter:'Twitter/X', tiktok:'TikTok', facebook:'Facebook', linkedin:'LinkedIn', youtube:'YouTube', threads:'Threads', whatsapp:'WhatsApp Status' };
 module.exports = {
   name: 'caption',
-  aliases: ['postcaption', 'igcaption', 'socialcaption'],
+  aliases: ['postcaption', 'socialmedia', 'posttext'],
   category: 'ai',
-  description: 'Generate social media captions using AI',
-  usage: '.caption <description> | .caption <platform> | <description>',
-
+  description: 'Generate engaging social media captions for any platform',
+  usage: '.caption <platform> | <description>  OR  .caption <description>  [--hashtags] [--cta]',
   async execute(sock, msg, args, extra) {
     try {
-      if (!args.length) {
-        return extra.reply(
-          '📸 *Caption Generator*\n\n' +
-          'Usage:\n.caption <description>\n.caption instagram | sunset selfie at the beach\n\n' +
-          `Platforms: ${PLATFORMS.join(', ')}`
-        );
-      }
-
-      const full = args.join(' ');
-      let platform = 'Instagram';
-      let description = full;
-
-      if (full.includes('|')) {
-        const parts = full.split('|');
-        const p = parts[0].trim().toLowerCase();
-        if (PLATFORMS.includes(p)) {
-          platform    = p.charAt(0).toUpperCase() + p.slice(1);
-          description = parts.slice(1).join('|').trim();
-        }
-      }
-
+      if (!args.length) return extra.reply(`📱 *Caption Generator v3*\n\nUsage: .caption <platform> | <description>\n\nPlatforms: ${Object.keys(PLATFORMS).join(', ')}\n\nOptions:\n  --hashtags — include hashtags\n  --cta      — include call-to-action\n\nExamples:\n  .caption instagram | photo of me at victoria falls --hashtags\n  .caption linkedin | just got promoted! --cta\n\n> _Ladybug Bot Mini v3_`);
+      let hashtags = false, cta = false;
+      const cleanArgs = args.filter(a => { if (a === '--hashtags') { hashtags = true; return false; } if (a === '--cta') { cta = true; return false; } return true; });
+      const fullText = cleanArgs.join(' ');
+      let platform = null, description = fullText;
+      if (fullText.includes('|')) { const [p, d] = fullText.split('|').map(s => s.trim()); platform = p.toLowerCase(); description = d; }
+      else { const first = cleanArgs[0]?.toLowerCase(); if (PLATFORMS[first]) { platform = first; description = cleanArgs.slice(1).join(' ').trim(); } }
+      if (!description) return extra.reply('❌ Please provide a description of your post.');
+      const platName = platform && PLATFORMS[platform] ? PLATFORMS[platform] : 'social media';
+      const extras   = [hashtags ? 'Include 5-8 relevant hashtags at the end.' : '', cta ? 'Include a compelling call-to-action.' : ''].filter(Boolean).join(' ');
+      await extra.reply(`📱 Writing *${platName}* caption...`);
       await sock.sendPresenceUpdate('composing', extra.from);
-
-      const platformGuide = {
-        Instagram: 'engaging with emojis and 5-8 relevant hashtags',
-        Twitter:   'under 280 characters, punchy and witty',
-        Tiktok:    'trendy, energetic, and fun with hashtags',
-        Facebook:  'conversational and shareable, medium length',
-        Linkedin:  'professional and insightful, no excessive hashtags',
-      };
-
-      const guide = platformGuide[platform] || 'engaging and shareable';
-      const prompt = `Write a ${platform} caption for this: "${description}". Make it ${guide}. Keep it natural and authentic. Only output the caption itself.`;
-
-      const result = await callAI(prompt);
+      const prompt = `Write an engaging ${platName} caption for: "${description}". Make it authentic, relatable, and platform-appropriate. ${extras} Under 150 words (excluding hashtags).`;
+      const result = await APIs.chatAI(prompt, `You are a social media expert who writes viral, authentic ${platName} captions.`);
       await sock.sendPresenceUpdate('paused', extra.from);
-      await extra.reply(`📸 *${platform} Caption*\n\n${result}`);
-    } catch (error) {
-      console.error('[caption] Error:', error);
-      await extra.reply(`❌ ${error.message}`);
-    }
-  },
+      await extra.reply(`📱 *${platName} Caption*\n━━━━━━━━━━━━━━━━━━━━\n${result}\n━━━━━━━━━━━━━━━━━━━━\n> _Ladybug Bot Mini v3_`);
+    } catch (e) { await extra.reply(`❌ ${e.message}`); }
+  }
 };

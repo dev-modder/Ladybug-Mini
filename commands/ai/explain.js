@@ -1,65 +1,36 @@
 /**
- * Explain Command - AI explains any topic simply (Ladybug V5)
- *
- * Usage: .explain <topic> [for <level>]
- * Example: .explain photosynthesis for grade 5
- * Example: .explain quantum computing for beginners
+ * Explain v3 — Ladybug Bot Mini
+ * .explain <topic> [--eli5] [--expert] [--analogy]
  */
-
 'use strict';
-
-const axios = require('axios');
-
-async function callAI(prompt) {
-  const endpoints = [
-    `https://api.shizo.top/ai/gpt?apikey=shizo&query=${encodeURIComponent(prompt)}`,
-    `https://api.siputzx.my.id/api/ai/chatgpt?query=${encodeURIComponent(prompt)}`,
-    `https://widipe.com/openai?text=${encodeURIComponent(prompt)}`,
-  ];
-  for (const url of endpoints) {
-    try {
-      const r = await axios.get(url, { timeout: 15000 });
-      const d = r.data;
-      const ans = d?.msg || d?.result || d?.data?.text || d?.response;
-      if (ans && ans.trim().length > 5) return ans.trim();
-    } catch (_) {}
-  }
-  throw new Error('AI unavailable right now. Try again shortly.');
-}
-
+const APIs = require('../../utils/api');
 module.exports = {
   name: 'explain',
-  aliases: ['eli5', 'simplify', 'breakdown'],
+  aliases: ['what', 'howdoes', 'breakdown', 'eli5'],
   category: 'ai',
-  description: 'AI explains any topic simply and clearly',
-  usage: '.explain <topic> [for <audience>]',
-
+  description: 'Explain any topic simply, with ELI5, expert, or analogy mode',
+  usage: '.explain <topic> [--eli5] [--expert] [--analogy]',
   async execute(sock, msg, args, extra) {
     try {
       if (!args.length) {
-        return extra.reply('💡 Usage: .explain <topic>\n\nExamples:\n.explain gravity\n.explain photosynthesis for grade 5\n.explain blockchain for beginners');
+        return extra.reply('📚 *Explain v3*\n\nUsage: .explain <topic>\n\nFlags:\n  --eli5    — explain like I\'m 5\n  --expert  — deep technical explanation\n  --analogy — use a real-world analogy\n\nExamples:\n  .explain quantum entanglement --eli5\n  .explain blockchain --analogy\n\n> _Ladybug Bot Mini v3_');
       }
-
-      const input = args.join(' ');
-      let topic = input;
-      let audience = 'a general audience';
-
-      if (input.toLowerCase().includes(' for ')) {
-        const parts = input.split(/ for /i);
-        topic = parts[0].trim();
-        audience = parts.slice(1).join(' for ').trim();
+      let mode = 'clear and simple';
+      const cleanArgs = [];
+      for (const a of args) {
+        if (a === '--eli5')    { mode = 'as if explaining to a 5-year-old with no technical knowledge'; }
+        else if (a === '--expert')  { mode = 'at an expert technical level with all relevant details'; }
+        else if (a === '--analogy') { mode = 'using a single real-world analogy that makes the concept crystal clear'; }
+        else { cleanArgs.push(a); }
       }
-
+      const topic = cleanArgs.join(' ').trim();
+      if (!topic) return extra.reply('❌ Provide a topic to explain.');
+      await extra.reply(`📚 Explaining: *${topic}*...`);
       await sock.sendPresenceUpdate('composing', extra.from);
-
-      const prompt = `Explain "${topic}" clearly and simply for ${audience}. Use:\n- A plain-language intro (1-2 sentences)\n- 3-5 key points\n- A simple real-world analogy or example\n- A one-sentence summary at the end\nKeep it under 300 words. Format nicely with emoji bullets.`;
-
-      const answer = await callAI(prompt);
+      const prompt = `Explain "${topic}" ${mode}. Be accurate, engaging, and under 250 words. Use examples where helpful.`;
+      const result = await APIs.chatAI(prompt, 'You are an expert teacher who makes complex ideas easy to understand.');
       await sock.sendPresenceUpdate('paused', extra.from);
-      await extra.reply(`💡 *Explaining: ${topic}*\n_(for ${audience})_\n\n${answer}`);
-    } catch (error) {
-      console.error('[explain] Error:', error);
-      await extra.reply(`❌ ${error.message}`);
-    }
-  },
+      await extra.reply(`📚 *${topic}*\n━━━━━━━━━━━━━━━━━━━━\n${result}\n━━━━━━━━━━━━━━━━━━━━\n> _Ladybug Bot Mini v3_`);
+    } catch (e) { await extra.reply(`❌ ${e.message}`); }
+  }
 };

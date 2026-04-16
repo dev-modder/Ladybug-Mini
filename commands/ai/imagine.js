@@ -1,73 +1,118 @@
 /**
- * Magic Studio AI Art Generation Command
- * Generate AI-powered art from text prompts
+ * ╔══════════════════════════════════════════════════════╗
+ * ║  Imagine — AI Image Generation v3 (Ladybug Bot)     ║
+ * ║  Multi-provider: Pollinations → Stable Diffusion    ║
+ * ║  .imagine <prompt> [--style <style>] [--ratio 16:9] ║
+ * ╚══════════════════════════════════════════════════════╝
  */
+
+'use strict';
 
 const axios = require('axios');
 
-const BASE = 'https://api.siputzx.my.id/api/ai/magicstudio';
+const STYLES = {
+  realistic:  'photorealistic, 8k, hyperdetailed, cinematic lighting',
+  anime:      'anime art style, vibrant colors, detailed, studio quality',
+  digital:    'digital art, concept art, artstation trending, detailed',
+  oil:        'oil painting, classical art style, detailed brushwork',
+  watercolor: 'watercolor painting, soft edges, artistic, beautiful',
+  cyberpunk:  'cyberpunk style, neon lights, futuristic city, blade runner aesthetic',
+  fantasy:    'fantasy art, magical, epic, highly detailed, d&d style',
+  cartoon:    'cartoon style, vibrant, clean lines, disney pixar style',
+  sketch:     'pencil sketch, detailed linework, artistic',
+  portrait:   'portrait photography, professional lighting, sharp focus',
+};
+
+async function generateWithPollinations(prompt, width = 1024, height = 1024) {
+  const seed = Math.floor(Math.random() * 999999);
+  const url  = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=true&model=flux`;
+  const r = await axios.get(url, { responseType: 'arraybuffer', timeout: 35000 });
+  if (!r.data || r.data.byteLength < 1000) throw new Error('Empty image');
+  return Buffer.from(r.data);
+}
+
+async function generateWithSD(prompt) {
+  const r = await axios.get(
+    `https://api.siputzx.my.id/api/ai/stablediffusion?prompt=${encodeURIComponent(prompt)}`,
+    { responseType: 'arraybuffer', timeout: 35000 }
+  );
+  if (!r.data || r.data.byteLength < 1000) throw new Error('Empty image');
+  return Buffer.from(r.data);
+}
 
 module.exports = {
   name: 'imagine',
-  aliases: ['magic', 'magicai', 'aiimage', 'generate'],
+  aliases: ['img', 'generate', 'draw', 'paint', 'art', 'create'],
   category: 'ai',
-  desc: 'Generate AI art from text prompt',
-  usage: 'magicstudio <prompt>',
-  execute: async (sock, msg, args, extra) => {
+  description: 'Generate AI images from text prompts with style control',
+  usage: '.imagine <prompt> [--style realistic|anime|digital|oil|watercolor|cyberpunk|fantasy|cartoon|sketch|portrait] [--wide|--tall|--square]',
+
+  async execute(sock, msg, args, extra) {
     try {
-      const prompt = args.join(' ').trim();
-      
-      if (!prompt) {
-        return await extra.reply(
-          'Usage: .magicstudio <prompt>\n\nExample: .magicstudio a cyberpunk city'
+      if (!args.length) {
+        return extra.reply(
+          `🎨 *AI Image Generator v3*\n\n` +
+          `Create stunning AI art from any description!\n\n` +
+          `*Usage:* .imagine <your prompt>\n\n` +
+          `*Styles:*\n` +
+          Object.keys(STYLES).map(s => `  • ${s}`).join('\n') +
+          `\n\n*Aspect Ratios:*\n` +
+          `  • --wide (16:9)\n  • --tall (9:16)\n  • --square (1:1, default)\n\n` +
+          `*Examples:*\n` +
+          `  .imagine a dragon flying over a sunset --style fantasy\n` +
+          `  .imagine african savanna at golden hour --style realistic --wide\n\n` +
+          `> _Ladybug Bot Mini v3_`
         );
       }
-      
-      // Fetch image from API
-      const url = `${BASE}?prompt=${encodeURIComponent(prompt)}`;
-      const response = await axios.get(url, {
-        responseType: 'arraybuffer',
-        headers: {
-          'User-Agent': 'Mozilla/5.0',
-          'Accept': '*/*'
-        },
-        timeout: 120000 // 2 minutes timeout for AI generation
-      });
-      
-      const imageBuffer = Buffer.from(response.data);
-      
-      // Verify buffer is valid
-      if (!imageBuffer || imageBuffer.length === 0) {
-        throw new Error('Empty response from API');
+
+      // Parse flags
+      let style = null, wide = false, tall = false;
+      const cleanArgs = [];
+      for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--style' && args[i+1]) { style = args[++i].toLowerCase(); }
+        else if (args[i] === '--wide')  { wide = true; }
+        else if (args[i] === '--tall')  { tall = true; }
+        else if (args[i] === '--square') {}
+        else { cleanArgs.push(args[i]); }
       }
-      
-      // Check file size (WhatsApp image limit is 5MB)
-      const maxImageSize = 5 * 1024 * 1024; // 5MB
-      if (imageBuffer.length > maxImageSize) {
-        throw new Error(`Image too large: ${(imageBuffer.length / 1024 / 1024).toFixed(2)}MB (max 5MB)`);
+
+      let prompt = cleanArgs.join(' ').trim();
+      if (!prompt) return extra.reply('❌ Please provide a prompt!');
+
+      // Apply style enhancement
+      const styleTag = style && STYLES[style] ? STYLES[style] : null;
+      if (styleTag) prompt = `${prompt}, ${styleTag}`;
+
+      // Determine dimensions
+      let width = 1024, height = 1024;
+      if (wide) { width = 1344; height = 768; }
+      if (tall) { width = 768;  height = 1344; }
+
+      await extra.reply(`🎨 *Generating your image...*\n\n📝 Prompt: _${cleanArgs.join(' ').slice(0, 100)}_${style ? `\n🎭 Style: ${style}` : ''}\n\n⏳ Please wait...`);
+      await sock.sendPresenceUpdate('composing', extra.from);
+
+      let imgBuffer;
+      try { imgBuffer = await generateWithPollinations(prompt, width, height); }
+      catch(_) {
+        try { imgBuffer = await generateWithSD(prompt); }
+        catch(e) { throw new Error('All image providers failed. Try a different prompt.'); }
       }
-      
-      // Send the generated image
+
       await sock.sendMessage(extra.from, {
-        image: imageBuffer
+        image: imgBuffer,
+        caption:
+          `🎨 *AI Generated Image*\n` +
+          `━━━━━━━━━━━━━━━━━━━━\n` +
+          `📝 *Prompt:* ${cleanArgs.join(' ').slice(0, 200)}\n` +
+          (style ? `🎭 *Style:* ${style}\n` : '') +
+          `📐 *Size:* ${width}×${height}\n` +
+          `━━━━━━━━━━━━━━━━━━━━\n` +
+          `> _Ladybug Bot Mini v3_`,
       }, { quoted: msg });
-      
+
     } catch (error) {
-      console.error('Error in magicstudio command:', error);
-      
-      // Handle specific error cases
-      if (error.response?.status === 429) {
-        await extra.reply('❌ Rate limit exceeded. Please try again later.');
-      } else if (error.response?.status === 400) {
-        await extra.reply('❌ Invalid prompt. Please try a different prompt.');
-      } else if (error.response?.status === 500) {
-        await extra.reply('❌ Server error. Please try again later.');
-      } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-        await extra.reply('❌ Request timed out. The image generation is taking too long. Please try again.');
-      } else {
-        await extra.reply(`❌ Failed to generate image: ${error.message}`);
-      }
+      console.error('[imagine] Error:', error.message);
+      await extra.reply(`❌ ${error.message}`);
     }
   }
 };
-

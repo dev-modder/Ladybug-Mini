@@ -1,77 +1,100 @@
 /**
- * Translate Command - AI-powered language translation
- * Ladybug V5
- *
- * Uses MyMemory free translation API (no key needed, 5k words/day free).
- *
- * Usage:
- *   .translate <lang> <text>
- *   .translate <lang> (reply to a message)
- *   .translate list  — show popular language codes
- *
- * Examples:
- *   .translate fr Hello, how are you?
- *   .translate es (reply to any message)
- *   .translate zh Good morning
+ * ╔══════════════════════════════════════════════════╗
+ * ║  Translate v3 — Ladybug Bot Mini                 ║
+ * ║  Multi-endpoint with 35+ language support        ║
+ * ║  .translate <lang> <text> | reply to msg         ║
+ * ╚══════════════════════════════════════════════════╝
  */
 
-const axios = require('axios');
+'use strict';
 
-const LANG_MAP = {
-  af: 'Afrikaans', sq: 'Albanian', ar: 'Arabic', az: 'Azerbaijani',
-  bn: 'Bengali', bs: 'Bosnian', bg: 'Bulgarian', ca: 'Catalan',
-  zh: 'Chinese', hr: 'Croatian', cs: 'Czech', da: 'Danish',
-  nl: 'Dutch', en: 'English', eo: 'Esperanto', et: 'Estonian',
-  fi: 'Finnish', fr: 'French', de: 'German', el: 'Greek',
-  gu: 'Gujarati', ht: 'Haitian Creole', he: 'Hebrew', hi: 'Hindi',
-  hu: 'Hungarian', id: 'Indonesian', it: 'Italian', ja: 'Japanese',
-  kn: 'Kannada', ko: 'Korean', lv: 'Latvian', lt: 'Lithuanian',
-  ms: 'Malay', ml: 'Malayalam', mr: 'Marathi', ne: 'Nepali',
-  no: 'Norwegian', pl: 'Polish', pt: 'Portuguese', ro: 'Romanian',
-  ru: 'Russian', sr: 'Serbian', sk: 'Slovak', sl: 'Slovenian',
-  es: 'Spanish', sw: 'Swahili', sv: 'Swedish', tl: 'Filipino',
-  ta: 'Tamil', te: 'Telugu', th: 'Thai', tr: 'Turkish',
-  uk: 'Ukrainian', ur: 'Urdu', vi: 'Vietnamese', cy: 'Welsh',
-  xh: 'Xhosa', yi: 'Yiddish', yo: 'Yoruba', zu: 'Zulu',
+const axios = require('axios');
+const APIs  = require('../../utils/api');
+
+const LANGS = APIs.LANG_CODES || {
+  english:'en', french:'fr', spanish:'es', arabic:'ar', chinese:'zh', german:'de',
+  hindi:'hi', portuguese:'pt', russian:'ru', japanese:'ja', korean:'ko',
+  swahili:'sw', shona:'sn', zulu:'zu', ndebele:'nd', afrikaans:'af',
+  dutch:'nl', italian:'it', turkish:'tr', malay:'ms', indonesian:'id',
+  thai:'th', vietnamese:'vi', urdu:'ur', persian:'fa', polish:'pl',
+  sotho:'st', xhosa:'xh', yoruba:'yo', igbo:'ig', hausa:'ha', somali:'so',
+  amharic:'am', tamil:'ta', romanian:'ro', ukrainian:'uk',
 };
+
+// Flag emojis for common languages
+const FLAGS = {
+  en:'🇬🇧', fr:'🇫🇷', es:'🇪🇸', ar:'🇸🇦', zh:'🇨🇳', de:'🇩🇪', hi:'🇮🇳',
+  pt:'🇵🇹', ru:'🇷🇺', ja:'🇯🇵', ko:'🇰🇷', sw:'🇰🇪', sn:'🇿🇼', zu:'🇿🇦',
+  af:'🇿🇦', nl:'🇳🇱', it:'🇮🇹', tr:'🇹🇷', ms:'🇲🇾', id:'🇮🇩',
+};
+
+async function doTranslate(text, to, from = 'auto') {
+  // Method 1: siputzx
+  try {
+    const r = await axios.get(
+      `https://api.siputzx.my.id/api/tools/translate?text=${encodeURIComponent(text)}&to=${to}`,
+      { timeout: 12000 }
+    );
+    const t = r.data?.data?.translatedText;
+    if (t) return { text: t, detectedLang: r.data?.data?.sourceLanguage };
+  } catch(_) {}
+
+  // Method 2: Google Translate (unofficial)
+  try {
+    const r = await axios.get(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${from}&tl=${to}&dt=t&q=${encodeURIComponent(text)}`,
+      { timeout: 12000 }
+    );
+    const trans = r.data?.[0]?.map(x => x?.[0]).filter(Boolean).join('');
+    const det   = r.data?.[2];
+    if (trans) return { text: trans, detectedLang: det };
+  } catch(_) {}
+
+  // Method 3: MyMemory
+  try {
+    const r = await axios.get(
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`,
+      { timeout: 12000 }
+    );
+    const t = r.data?.responseData?.translatedText;
+    if (t && !t.toLowerCase().includes('quota')) return { text: t };
+  } catch(_) {}
+
+  throw new Error('Translation failed. All providers unavailable.');
+}
 
 module.exports = {
   name: 'translate',
-  aliases: ['tr', 'tl', 'trans'],
+  aliases: ['tr', 'trans', 'tl', 'tlang'],
   category: 'ai',
-  description: 'Translate text to any language using AI',
-  usage: '.translate <lang code> <text>  OR  reply to a message',
+  description: 'Translate text to any language with 35+ language support',
+  usage: '.translate <language> <text>   OR   reply to message with .translate <language>',
 
   async execute(sock, msg, args, extra) {
     try {
-      // Show language list
-      if (args[0]?.toLowerCase() === 'list') {
-        const lines = Object.entries(LANG_MAP)
-          .map(([code, name]) => `  \`${code}\` — ${name}`)
-          .join('\n');
+      if (!args.length) {
+        const list = Object.keys(LANGS).slice(0, 20).join(', ') + '...';
         return extra.reply(
-          `🌍 *Language Codes*\n━━━━━━━━━━━━━━━━━━━━\n${lines}\n━━━━━━━━━━━━━━━━━━━━`
+          `🌐 *Translate v3*\n\n` +
+          `*Usage:*\n` +
+          `  .translate french Hello how are you?\n` +
+          `  .translate shona I love Zimbabwe\n` +
+          `  .translate en Bonjour (reply to msg)\n\n` +
+          `*Supported Languages:*\n${list}\n\n` +
+          `> _Ladybug Bot Mini v3_`
         );
       }
 
-      if (args.length === 0) {
-        return extra.reply(
-          `🌍 *Translate*\n\n` +
-          `Usage:\n` +
-          `  .translate <lang> <text>\n` +
-          `  .translate <lang> (reply to message)\n\n` +
-          `Examples:\n` +
-          `  .translate fr Hello world\n` +
-          `  .translate es (reply to a message)\n\n` +
-          `Type *.translate list* for all language codes.`
-        );
-      }
+      // Resolve target language
+      const langInput = args[0].toLowerCase();
+      let toLang = LANGS[langInput] || (Object.values(LANGS).includes(langInput) ? langInput : null);
+      if (!toLang && langInput.length === 2) toLang = langInput; // raw code
 
-      const targetLang = args[0].toLowerCase();
-
-      if (!LANG_MAP[targetLang]) {
+      if (!toLang) {
         return extra.reply(
-          `❌ Unknown language code: \`${targetLang}\`\n\nType *.translate list* to see all supported codes.`
+          `❌ Unknown language: *${args[0]}*\n\n` +
+          `Try: english, french, spanish, arabic, shona, swahili, zulu, hindi, chinese...\n\n` +
+          `Or use a 2-letter code like: en, fr, es, ar, sn, sw, zu`
         );
       }
 
@@ -82,44 +105,32 @@ module.exports = {
         text = (
           quoted?.conversation ||
           quoted?.extendedTextMessage?.text ||
-          quoted?.imageMessage?.caption ||
-          ''
+          quoted?.imageMessage?.caption || ''
         ).trim();
       }
 
-      if (!text) {
-        return extra.reply(`❌ Please provide text to translate, or reply to a message.`);
-      }
+      if (!text) return extra.reply('❌ Please provide text to translate, or reply to a message.');
+      if (text.length > 3000) return extra.reply('❌ Text too long. Max 3000 characters.');
 
-      // Call MyMemory API (free, no key needed)
-      const response = await axios.get('https://api.mymemory.translated.net/get', {
-        params: { q: text, langpair: `auto|${targetLang}` },
-        timeout: 15000,
-      });
+      await extra.reply('🌐 Translating...');
 
-      const data = response.data;
-      if (!data?.responseData?.translatedText) {
-        throw new Error('No translation returned');
-      }
-
-      const translated = data.responseData.translatedText;
-      const detectedLang = data.responseData.detectedLanguage || 'auto';
-      const quality = Math.round((data.responseData.match || 0) * 100);
+      const result    = await doTranslate(text, toLang);
+      const langName  = Object.keys(LANGS).find(k => LANGS[k] === toLang) || toLang;
+      const flag      = FLAGS[toLang] || '🌐';
 
       await extra.reply(
-        `🌍 *Translation*\n` +
+        `${flag} *Translation*\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
-        `🔤 From: \`${detectedLang}\`\n` +
-        `🌐 To: \`${targetLang}\` (${LANG_MAP[targetLang]})\n` +
-        `📊 Confidence: ${quality}%\n` +
+        `📤 *Original:*\n${text.slice(0, 300)}\n\n` +
+        `📥 *${langName.charAt(0).toUpperCase() + langName.slice(1)}:*\n${result.text}\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
-        `📥 *Original:*\n${text}\n\n` +
-        `📤 *Translated:*\n${translated}`
+        (result.detectedLang ? `🔍 Detected: ${result.detectedLang}\n` : '') +
+        `> _Ladybug Bot Mini v3_`
       );
 
     } catch (error) {
-      console.error('[translate] Error:', error);
-      await extra.reply(`❌ Translation failed: ${error.message}`);
+      console.error('[translate] Error:', error.message);
+      await extra.reply(`❌ ${error.message}`);
     }
-  },
+  }
 };

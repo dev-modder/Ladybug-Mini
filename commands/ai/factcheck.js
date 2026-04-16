@@ -1,61 +1,29 @@
 /**
- * FactCheck Command - AI fact-checks a statement (Ladybug V5)
- *
- * Usage: .factcheck <statement>
+ * FactCheck v3 — Ladybug Bot Mini
+ * .factcheck <claim>
  */
-
 'use strict';
-
-const axios = require('axios');
-
-async function callAI(prompt) {
-  const endpoints = [
-    `https://api.shizo.top/ai/gpt?apikey=shizo&query=${encodeURIComponent(prompt)}`,
-    `https://api.siputzx.my.id/api/ai/chatgpt?query=${encodeURIComponent(prompt)}`,
-    `https://widipe.com/openai?text=${encodeURIComponent(prompt)}`,
-  ];
-  for (const url of endpoints) {
-    try {
-      const r = await axios.get(url, { timeout: 15000 });
-      const d = r.data;
-      const ans = d?.msg || d?.result || d?.data?.text || d?.response;
-      if (ans && ans.trim().length > 5) return ans.trim();
-    } catch (_) {}
-  }
-  throw new Error('AI unavailable right now.');
-}
-
+const APIs = require('../../utils/api');
 module.exports = {
   name: 'factcheck',
-  aliases: ['fact', 'checkfact', 'verify'],
+  aliases: ['fact', 'isittrue', 'verify', 'checkit'],
   category: 'ai',
-  description: 'AI fact-checks a statement and gives a verdict',
-  usage: '.factcheck <statement>',
-
+  description: 'AI fact-checks any claim with reasoning and verdict',
+  usage: '.factcheck <claim>',
   async execute(sock, msg, args, extra) {
     try {
-      if (!args.length) {
-        return extra.reply('🔍 Usage: .factcheck <statement>\n\nExample: .factcheck The Great Wall of China is visible from space');
+      let claim = args.join(' ').trim();
+      if (!claim) {
+        const q = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+        claim = (q?.conversation || q?.extendedTextMessage?.text || '').trim();
       }
-
-      const statement = args.join(' ');
+      if (!claim) return extra.reply('🔍 *FactCheck v3*\n\nUsage: .factcheck <claim>\nOr reply to a message.\n\nExample: .factcheck The Great Wall of China is visible from space\n\n> _Ladybug Bot Mini v3_');
+      await extra.reply(`🔍 Fact-checking: _${claim.slice(0,100)}_...`);
       await sock.sendPresenceUpdate('composing', extra.from);
-
-      const prompt =
-        `Fact-check this statement: "${statement}"\n\n` +
-        `Respond in this exact format:\n` +
-        `VERDICT: [TRUE / FALSE / PARTIALLY TRUE / UNVERIFIED]\n` +
-        `EXPLANATION: [2-4 sentence explanation with context]\n` +
-        `CONFIDENCE: [High / Medium / Low]\n\n` +
-        `Be accurate and neutral. If unsure, say Unverified.`;
-
-      const result = await callAI(prompt);
+      const prompt = `Fact-check this claim: "${claim}"\n\nRespond with:\n🔍 Claim: [restate the claim]\n✅/❌/⚠️ Verdict: [TRUE / FALSE / MISLEADING / UNVERIFIABLE]\n📖 Explanation: [clear explanation with reasoning, 2-4 sentences]\n📚 Context: [any important background info]\n\nBe accurate, neutral, and cite reasoning clearly.`;
+      const result = await APIs.chatAI(prompt, 'You are a rigorous fact-checker. Be honest, cite reasoning, and clearly distinguish fact from opinion.');
       await sock.sendPresenceUpdate('paused', extra.from);
-
-      await extra.reply(`🔍 *Fact Check*\n\n📌 *Statement:* ${statement}\n\n${result}\n\n_⚠️ AI fact-checks may have errors. Verify important claims independently._`);
-    } catch (error) {
-      console.error('[factcheck] Error:', error);
-      await extra.reply(`❌ ${error.message}`);
-    }
-  },
+      await extra.reply(`${result}\n━━━━━━━━━━━━━━━━━━━━\n> _Ladybug Bot Mini v3_`);
+    } catch (e) { await extra.reply(`❌ ${e.message}`); }
+  }
 };
