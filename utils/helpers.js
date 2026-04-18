@@ -87,21 +87,36 @@ const getQuoted = (msg) => {
 
 /**
  * Upload file to temporary hosting
+ * Tries multiple providers with fallback
  */
-const uploadFile = async (buffer) => {
+const uploadFile = async (buffer, filename = 'file', mimeType = 'application/octet-stream') => {
+  const FormData = require('form-data');
+
+  // Provider 1: tmpfiles.org (free, no account needed)
   try {
-    const FormData = require('form-data');
     const form = new FormData();
-    form.append('file', buffer, { filename: 'file' });
-    
-    const response = await axios.post('https://file.io', form, {
-      headers: form.getHeaders()
+    form.append('file', buffer, { filename, contentType: mimeType });
+    const response = await axios.post('https://tmpfiles.org/api/v1/upload', form, {
+      headers: form.getHeaders(),
+      timeout: 20000,
     });
-    
-    return response.data.link;
-  } catch (error) {
-    throw new Error('File upload failed');
-  }
+    if (response.data?.data?.url) return response.data.data.url;
+  } catch (_) {}
+
+  // Provider 2: 0x0.st (simple paste host)
+  try {
+    const form = new FormData();
+    form.append('file', buffer, { filename, contentType: mimeType });
+    const response = await axios.post('https://0x0.st', form, {
+      headers: form.getHeaders(),
+      timeout: 20000,
+    });
+    if (response.data && typeof response.data === 'string' && response.data.startsWith('http')) {
+      return response.data.trim();
+    }
+  } catch (_) {}
+
+  throw new Error('File upload failed — all providers unavailable');
 };
 
 /**

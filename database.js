@@ -46,16 +46,27 @@ const readDB = (filePath) => {
     return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   } catch (error) {
     console.error(`Error reading database: ${error.message}`);
-    return Array.isArray(fs.readFileSync(filePath, 'utf-8').trim()[0]) ? [] : {};
+    // Safely determine default: if the file starts with '[' it should be an array
+    try {
+      const raw = fs.readFileSync(filePath, 'utf-8').trim();
+      return raw.startsWith('[') ? [] : {};
+    } catch (_) {
+      return {};
+    }
   }
 };
 
 const writeDB = (filePath, data) => {
+  // Atomic write: write to a temp file then rename to prevent partial writes on crash
+  const tmpPath = filePath + '.tmp';
   try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2));
+    fs.renameSync(tmpPath, filePath);
     return true;
   } catch (error) {
     console.error(`Error writing database: ${error.message}`);
+    // Clean up temp file if rename failed
+    try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch (_) {}
     return false;
   }
 };

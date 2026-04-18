@@ -274,14 +274,13 @@ async function startBot() {
     }
   }, 5 * 60 * 1000);
 
-  // ── Connection events ──
-  sock.ev.on('connection.update', (update) => {
-    if (update.connection === 'open')  lastActivity = Date.now();
-    if (update.connection === 'close') clearInterval(watchdogInterval);
-  });
-
+  // ── Connection events (merged into single handler to prevent duplicate firing) ──
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update;
+
+    // Update watchdog activity & clear interval on close
+    if (connection === 'open')  lastActivity = Date.now();
+    if (connection === 'close') clearInterval(watchdogInterval);
 
     if (qr) {
       console.log('\n📱 Scan this QR code with WhatsApp:\n');
@@ -371,6 +370,11 @@ async function startBot() {
         }
       }
 
+      // Handle polls inline (avoids registering a second messages.upsert listener)
+      if (msg.message?.pollCreationMessage || msg.message?.pollUpdateMessage) {
+        handler.handlePollMessage(sock, msg).catch(() => {});
+      }
+
       // Handle command (non-blocking)
       handler.handleMessage(sock, msg).catch(err => {
         if (!err.message?.includes('rate-overlimit') && !err.message?.includes('not-authorized')) {
@@ -395,15 +399,6 @@ async function startBot() {
           }
         } catch (_) {}
       });
-    }
-  });
-
-  // ── V5: Handle WhatsApp native poll messages ──
-  sock.ev.on('messages.upsert', ({ messages, type }) => {
-    if (type !== 'notify') return;
-    for (const msg of messages) {
-      if (!msg.message?.pollCreationMessage && !msg.message?.pollUpdateMessage) continue;
-      handler.handlePollMessage(sock, msg).catch(() => {});
     }
   });
 

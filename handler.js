@@ -401,9 +401,8 @@ const handleMessage = async (sock, msg) => {
     
     // Auto-React System
     try {
-      // Clear cache to get fresh config values
-      delete require.cache[require.resolve('./config')];
-      const config = require('./config');
+      // Use module-level config (re-read on each handler invocation via the top-level require)
+      // No need to bust require cache per message — config changes take effect on restart
 
       if (config.autoReact && msg.message && !msg.key.fromMe) {
         const content = msg.message.ephemeralMessage?.message || msg.message;
@@ -731,11 +730,9 @@ const handleMessage = async (sock, msg) => {
 
     // ── AI Auto-Reply: global DM auto-reply (owner-controlled in config) ──────
     if (!body.startsWith(config.prefix) && !isGroup) {
-      delete require.cache[require.resolve('./config')];
-      const freshCfg = require('./config');
-      if (freshCfg.aiAutoReply === true && !msg.key.fromMe) {
+      if (config.aiAutoReply === true && !msg.key.fromMe) {
         try {
-          const customPrompt = freshCfg.aiAutoReplyPrompt || AI_AUTOREPLY_SYSTEM;
+          const customPrompt = config.aiAutoReplyPrompt || AI_AUTOREPLY_SYSTEM;
           const prompt = `${customPrompt}\n\nUser: ${body.trim()}\nLadybug:`;
           await sock.sendPresenceUpdate('composing', from);
           const aiRes  = await APIs.chatAI(prompt);
@@ -1175,13 +1172,10 @@ const handleAntilink = async (sock, msg, groupMetadata) => {
                   msg.message?.imageMessage?.caption || 
                   msg.message?.videoMessage?.caption || '';
     
-    // Comprehensive link detection - matches links with or without protocols
-    // Matches: https://t.me/..., http://wa.me/..., t.me/..., wa.me/..., google.com, telegram.com, etc.
-    // Pattern breakdown:
-    // 1. (https?:\/\/)? - Optional http:// or https://
-    // 2. ([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,} - Domain pattern (e.g., google.com, t.me)
-    // 3. (\/[^\s]*)? - Optional path after domain
-    const linkPattern = /(https?:\/\/)?([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}(\/[^\s]*)?/i;
+    // Improved link detection:
+    // Matches explicit protocols (http/https) or common naked domains (e.g. t.me/..., wa.me/...)
+    // Avoids false positives from plain words with dots like "hello.world"
+    const linkPattern = /(?:https?:\/\/[\S]+|(?:^|\s)(?:www\.[\w.-]+|[\w-]+\.(?:com|net|org|io|me|app|gg|co|uk|tv|info|biz|xyz|online|site|live|link|chat|ly|gl|to|fm|sh|cc|ng|ke|gh|tz|ug|rw|zw))(?:[/\S]*)?)(?=\s|$)/i;
     
     // Check for any links (with or without protocol)
     if (linkPattern.test(body)) {
@@ -1581,10 +1575,6 @@ const initializeAntiCall = (sock) => {
   // Anti-call feature - reject and block incoming calls
   sock.ev.on('call', async (calls) => {
     try {
-      // Reload config to get fresh settings
-      delete require.cache[require.resolve('./config')];
-      const config = require('./config');
-      
       if (!config.defaultGroupSettings.anticall) return;
 
       for (const call of calls) {
