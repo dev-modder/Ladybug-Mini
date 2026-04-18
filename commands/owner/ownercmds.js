@@ -124,8 +124,10 @@ module.exports = {
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `🆕 *New Owner Commands (v5.2)*\n\n` +
 
-        `📊 *Dashboard*\n` +
-        `  ${p}dashboard                  — Full bot + system stats panel\n\n` +
+        `📊 *Dashboard & Stats*\n` +
+        `  ${p}dashboard                  — Full bot + system stats panel\n` +
+        `  ${p}cmdstats [top <n>]          — Most used commands stats\n` +
+        `  ${p}botstats2                   — Bot runtime & memory stats\n\n` +
 
         `📡 *Group Broadcast*\n` +
         `  ${p}gbroadcast <message>        — Broadcast to ALL groups\n` +
@@ -151,8 +153,32 @@ module.exports = {
         `  ${p}shazam                      — Identify any song from audio/video\n` +
         `  _(reply to audio/voice note/video — 5-API fallback chain)_\n\n` +
 
+        `🚫 *Blacklist*\n` +
+        `  ${p}ipblock <number> [reason]   — Permanently blacklist a number\n` +
+        `  ${p}ipblock list                — View all blacklisted numbers\n` +
+        `  ${p}ipblock remove <number>     — Remove from blacklist\n\n` +
+
+        `⌨️ *Prefix*\n` +
+        `  ${p}globalprefix <char>         — Set global prefix for all chats\n\n` +
+
+        `📋 *Auto React*\n` +
+        `  ${p}autoreact on|off            — Toggle auto emoji reactions\n` +
+        `  ${p}setreactmoji <emoji>        — Set the auto-react emoji\n\n` +
+
+        `🤖 *AI Personality*\n` +
+        `  ${p}setaipersonality <text>     — Set AI chat personality/system prompt\n` +
+        `  ${p}setautoreply <text>         — Set static auto-reply message\n` +
+        `  ${p}aiautoreply on|off          — Toggle AI auto-reply mode\n\n` +
+
+        `🌐 *Localisation*\n` +
+        `  ${p}setlang <code>             — Set bot response language\n\n` +
+
+        `🔒 *Rate Limiting*\n` +
+        `  ${p}ratelimit set <n>           — Set command rate limit per minute\n` +
+        `  ${p}slowmode on|off             — Toggle group slow mode\n\n` +
+
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `_Prefix: ${p}  |  Version: Ladybug V5.2_`;
+        `_Prefix: ${p}  |  Version: Ladybug Mini V1_`;
 
       await extra.reply(menuText);
 
